@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -114,13 +115,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
     <div className="space-y-0.5">
-      <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-3 w-3" /> : <Sunset className="h-3 w-3" />}
+      <div className="flex items-center gap-2 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+        {type === 'morning' ? <Sunrise className="h-2.5 w-2.5" /> : <Sunset className="h-2.5 w-2.5" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-12 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
-        compact && "h-8",
+        "flex h-9 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        compact && "h-7",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -132,22 +133,28 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             index <= Math.max(dragStart.index, dragEnd.index);
 
           const visualOccupied = isInDragRange ? (dragAction === 'occupy') : isOccupied;
+          
+          // Calculate distance from drag start for directional animation effect
+          const dragDistance = (dragStart !== null && isInDragRange) ? Math.abs(index - dragStart.index) : 0;
 
           return (
             <div
               key={time}
               onMouseDown={() => handleMouseDown(type, index)}
               onMouseEnter={() => handleMouseEnter(type, index)}
+              style={{ 
+                transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms'
+              }}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
+                "group flex-1 relative flex items-center justify-center transition-all duration-300 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-white",
+                isHourStart && "border-l-2 border-l-white/60",
                 visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               <div className={cn(
-                "text-[8px] md:text-[10px] font-bold leading-none select-none pointer-events-none transition-colors",
+                "text-[7px] md:text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
                 isHourStart ? "text-foreground font-black" : "opacity-0",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
@@ -163,23 +170,23 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-4 space-y-2 shadow-sm hover:shadow-md transition-all duration-300", 
+      "bg-card border rounded-2xl p-3 space-y-1 shadow-sm hover:shadow-md transition-all duration-300", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-3 space-y-1.5"
+      compact && "p-2 space-y-0.5"
     )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={cn(
-            "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-base select-none shadow-sm shadow-primary/20",
-            compact && "h-9 w-9 text-sm"
+            "flex h-8 w-8 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-xs select-none shadow-sm shadow-primary/20",
+            compact && "h-7 w-7"
           )}>
             {initials}
           </div>
           <div>
-            <h3 className={cn("font-bold text-lg text-foreground", compact && "text-base")}>{technician.name}</h3>
+            <h3 className={cn("font-bold text-sm text-foreground", compact && "text-[13px]")}>{technician.name}</h3>
             {!compact && (
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+              <p className="text-[8px] text-muted-foreground flex items-center gap-1">
+                <Clock className="h-2 w-2" />
                 Sincronizado via Nuvem
               </p>
             )}
@@ -187,34 +194,34 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className={cn("space-y-0.5", compact && "space-y-0.25")}>
+      <div className={cn("space-y-0.25", compact && "space-y-0")}>
         {renderSlotsBar('morning', slots.morning)}
 
         <div className="flex justify-center py-0.25">
           <div className={cn(
-            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-0.25 rounded-lg backdrop-blur-sm scale-75",
+            "flex items-center gap-2 bg-muted/40 border border-border/50 px-2 py-0.25 rounded-lg backdrop-blur-sm scale-75",
           )}>
-            <Coffee className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
+            <Coffee className="h-2 w-2 text-muted-foreground" />
+            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
           </div>
         </div>
 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-1 text-[9px] text-muted-foreground border-t border-border/50">
+      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/50">
         <div className="flex gap-4">
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-accent" />
+            <div className="w-1.5 h-1.5 rounded-sm bg-accent" />
             <span>Ocupado</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm bg-available" />
+            <div className="w-1.5 h-1.5 rounded-sm bg-available" />
             <span>Livre</span>
           </div>
         </div>
         {!compact && (
-          <p className="hidden md:block text-white font-bold text-[11px] uppercase tracking-wider opacity-90">
+          <p className="hidden md:block text-white font-bold text-[9px] uppercase tracking-wider opacity-90">
             CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
           </p>
         )}
