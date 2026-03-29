@@ -75,7 +75,7 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
           <User className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="font-semibold text-lg">{technician.name}</h3>
+          <h3 className="font-semibold text-lg text-foreground">{technician.name}</h3>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />
             Agenda Diária
@@ -88,14 +88,14 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
           {/* Hour labels */}
           <div className="flex mb-2">
             {hourHeaders.map((hour) => (
-              <div key={hour} className="flex-1 text-[10px] font-bold text-muted-foreground border-l pl-1 uppercase">
+              <div key={hour} className="flex-1 text-[10px] font-bold text-muted-foreground border-l border-border pl-1 uppercase">
                 {hour}
               </div>
             ))}
           </div>
 
           {/* Slots grid */}
-          <div className="flex h-16 items-stretch border rounded-xl overflow-hidden bg-white/50">
+          <div className="flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/20">
             {slots.map((time, index) => {
               const isOccupied = occupiedSlots.includes(time);
               const isHourStart = time.endsWith(":00");
@@ -111,7 +111,7 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
                   onMouseEnter={() => handleMouseEnter(index)}
                   title={`${time} - ${isOccupied ? 'Indisponível' : 'Disponível'}`}
                   className={cn(
-                    "group flex-1 relative transition-all duration-300 border-r last:border-r-0 hover:z-10 cursor-pointer",
+                    "group flex-1 relative transition-all duration-300 border-r border-border last:border-r-0 hover:z-10 cursor-pointer",
                     isHourStart && "border-l-2 border-l-primary/10",
                     isOccupied 
                       ? "bg-accent shadow-inner text-white" 
@@ -119,7 +119,7 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
                     isInDragRange && (
                       dragAction === 'occupy' 
                         ? "bg-accent/80" 
-                        : "bg-white/40 shadow-none border-dashed ring-2 ring-inset ring-accent/20"
+                        : "bg-muted/40 shadow-none border-dashed ring-2 ring-inset ring-accent/20"
                     )
                   )}
                 >
