@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -52,7 +51,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    // Aligned 6h turns
+    // Aligned 6h turns (08:00 to 14:00 and 14:00 to 20:00)
     for (let h = 8; h < 14; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -77,7 +76,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           startTime: time,
           endTime: time,
           markedByUserId: user.uid,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          equipe: activeEquipe // Store which equipe marked it
         }, { merge: true });
       } else {
         deleteDocumentNonBlocking(docRef);
@@ -106,6 +106,16 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
     if (!isEditable) return;
+    
+    if (activeEquipe === null) {
+      toast({
+        variant: "destructive",
+        title: "Selecione uma Equipe",
+        description: "É necessário selecionar EQUIPE 1 ou EQUIPE 2 antes de marcar horários.",
+      });
+      return;
+    }
+
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
     setDragStart({ type, index });
     setDragEnd({ type, index });
@@ -130,7 +140,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, isEditable, user, firestore, occupiedSlots, technician.id]);
+  }, [dragStart, dragEnd, dragAction, slots, isEditable, user, firestore, occupiedSlots, technician.id, activeEquipe]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -140,15 +150,16 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-1 select-none">
-      <div className="flex items-center gap-2 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-2.5 w-2.5" /> : <Sunset className="h-2.5 w-2.5" />}
+    <div className="space-y-0.5 select-none">
+      <div className="flex items-center gap-1.5 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-0.5">
+        {type === 'morning' ? <Sunrise className="h-2 w-2" /> : <Sunset className="h-2 w-2" />}
         {type === 'morning' ? 'Turno 1 (08:00 - 14:00)' : 'Turno 2 (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-20 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
-        compact && "h-14",
-        (!isEditable || isLoading) && "cursor-not-allowed"
+        "flex h-24 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
+        compact && "h-16",
+        (!isEditable || isLoading) && "cursor-not-allowed",
+        isEditable && activeEquipe === null && "cursor-not-allowed opacity-80"
       )}>
         {timeSlots.map((time, index) => {
           const isOccupied = occupiedSlots.includes(time);
@@ -170,9 +181,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 transitionDelay: isInDragRange ? `${dragDistance * 5}ms` : '0ms'
               }}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
-                isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-white",
+                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
+                isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
+                isHourStart && "border-l-2 border-l-white/20",
                 visualOccupied 
                   ? (activeEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
@@ -181,9 +192,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             >
               {isHourStart && (
                 <div className={cn(
-                  "text-[11px] font-black leading-none select-none pointer-events-none transition-colors",
-                  "text-foreground/60",
-                  visualOccupied ? "text-white" : ""
+                  "text-[10px] font-black leading-none select-none pointer-events-none transition-colors",
+                  "text-foreground/40",
+                  visualOccupied ? "text-white drop-shadow-sm" : ""
                 )}>
                   {time}
                 </div>
@@ -198,11 +209,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-4 space-y-1 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
+      "bg-card border rounded-2xl p-4 space-y-0.5 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-3 space-y-0.5"
+      compact && "p-3"
     )}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-sm select-none shadow-sm shadow-primary/20",
@@ -268,13 +279,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-1">
-          <div className="flex items-center gap-2 bg-muted/30 px-6 py-1 rounded-full border border-border/40">
-            <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[14px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
+        <div className="flex justify-center py-1.5">
+          <div className="flex items-center gap-2 bg-muted/30 px-5 py-1 rounded-full border border-border/40">
+            <Coffee className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <span className="text-[12px] font-black text-muted-foreground/80 uppercase tracking-[0.2em] leading-none">
               Intervalo
             </span>
           </div>
@@ -283,7 +294,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50 mt-2">
+      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/30 mt-1.5">
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
             <div className={cn("w-2 h-2 rounded-sm shadow-sm", activeEquipe === 2 ? "bg-green-500" : "bg-accent")} />
@@ -294,8 +305,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span className="font-medium">Livre</span>
           </div>
         </div>
-        <p className="text-white font-black text-[10px] uppercase tracking-[0.1em] drop-shadow-sm">
-          CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
+        <p className="text-white/60 font-black text-[9px] uppercase tracking-[0.1em]">
+          {activeEquipe === null ? "SELECIONE UMA EQUIPE PARA EDITAR" : "CLIQUE E ARRASTE PARA MARCAR HORÁRIOS"}
         </p>
       </div>
     </div>
