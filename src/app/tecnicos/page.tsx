@@ -9,8 +9,7 @@ import {
   useDoc, 
   useCollection, 
   useMemoFirebase,
-  addDocumentNonBlocking,
-  deleteDocumentNonBlocking
+  addDocumentNonBlocking
 } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Plus, 
-  Trash2, 
   Users, 
   ShieldAlert, 
   Loader2,
@@ -48,13 +46,11 @@ export default function TecnicosPage() {
   const { data: tacMemberDoc, isLoading: isTacLoading } = useDoc(tacMemberRef);
   const isTacMember = !!tacMemberDoc;
 
-  // Buscar técnicos do Firestore
+  // Buscar técnicos do Firestore apenas para contagem ou lógica interna se necessário futuramente
   const techniciansRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'technicians');
   }, [firestore]);
-
-  const { data: technicians, isLoading: isTechLoading } = useCollection<Technician>(techniciansRef);
 
   const handleAddTechnician = () => {
     if (!newTechName.trim()) {
@@ -80,24 +76,6 @@ export default function TecnicosPage() {
     });
   };
 
-  const handleDeleteTechnician = (id: string, name: string) => {
-    if (!id || !firestore) return;
-
-    const confirmed = window.confirm(
-      `ATENÇÃO: Deseja realmente remover o técnico "${name}"? Esta ação é irreversível.`
-    );
-
-    if (confirmed) {
-      const techDocRef = doc(firestore, 'technicians', id);
-      deleteDocumentNonBlocking(techDocRef);
-
-      toast({
-        title: "Técnico Removido",
-        description: `${name} foi removido com sucesso.`,
-      });
-    }
-  };
-
   if (isAuthLoading || isTacLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -119,7 +97,7 @@ export default function TecnicosPage() {
                 Gestão de Equipe
               </h2>
               <p className="text-muted-foreground text-sm uppercase tracking-widest opacity-70">
-                Cadastro e manutenção de técnicos
+                Cadastro de técnicos
               </p>
             </div>
           </div>
@@ -160,47 +138,6 @@ export default function TecnicosPage() {
                       Cadastrar
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Lista de Técnicos */}
-              <Card className="border-border/50 bg-card/30">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                    Equipe Atual ({technicians?.length || 0})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isTechLoading ? (
-                    <div className="p-8 text-center text-muted-foreground animate-pulse">Sincronizando equipe...</div>
-                  ) : technicians && technicians.length > 0 ? (
-                    <div className="divide-y divide-border/30">
-                      {technicians.map((tech) => (
-                        <div key={tech.id} className="flex items-center justify-between p-5 hover:bg-primary/5 transition-colors group">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
-                              {tech.name?.[0]?.toUpperCase() || 'T'}
-                            </div>
-                            <span className="font-semibold text-foreground text-lg">{tech.name}</span>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            onClick={() => handleDeleteTechnician(tech.id, tech.name)}
-                            className="h-9 px-4 gap-2 opacity-80 hover:opacity-100 transition-all font-bold uppercase text-[10px] tracking-widest shadow-md"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Excluir
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-12 text-center text-muted-foreground space-y-4">
-                      <Users className="h-12 w-12 mx-auto opacity-20" />
-                      <p className="uppercase tracking-widest text-xs font-bold italic">A base de técnicos está vazia</p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </div>
