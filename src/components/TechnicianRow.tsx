@@ -120,8 +120,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
-        compact && "h-12",
+        "flex h-14 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        compact && "h-10",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -148,11 +148,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className={cn(
-                "text-[9px] md:text-[10px] font-bold leading-none select-none pointer-events-none transition-colors",
-                isHourStart ? "text-foreground font-black scale-110" : "text-foreground/40",
+                "text-[10px] md:text-[12px] font-bold leading-none select-none pointer-events-none transition-colors",
+                isHourStart ? "text-foreground font-black scale-110" : "opacity-0",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
-                {time}
+                {isHourStart ? time : ""}
               </div>
               <span className="sr-only">{time}</span>
             </div>
