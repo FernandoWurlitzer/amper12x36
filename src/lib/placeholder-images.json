@@ -5,6 +5,12 @@
       "description": "Abstract technician avatar placeholder",
       "imageUrl": "https://picsum.photos/seed/tech/200/200",
       "imageHint": "technician avatar"
+    },
+    {
+      "id": "amper-logo",
+      "description": "Logotipo Amper 12x36",
+      "imageUrl": "/logo.png",
+      "imageHint": "amper logo"
     }
   ]
 }
