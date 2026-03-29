@@ -49,12 +49,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
   
-  // Mapeia os slots ocupados para o número da equipe correspondente
   const occupiedSlotsMap = useMemo(() => {
     const map: Record<string, number> = {};
     if (blocksData) {
       blocksData.forEach(block => {
-        map[block.id] = block.equipe || 1; // Default para equipe 1 se não houver campo
+        map[block.id] = block.equipe || 1;
       });
     }
     return map;
@@ -85,7 +84,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const existingEquipe = occupiedSlotsMap[time];
 
       if (action === 'occupy') {
-        // Não permite marcar sobre um horário já ocupado por QUALQUER equipe
+        // Bloqueia gravação se o horário estiver ocupado por QUALQUER equipe
         if (!existingEquipe) {
           setDocumentNonBlocking(docRef, {
             technicianId: technician.id,
@@ -97,7 +96,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           }, { merge: true });
         }
       } else {
-        // Permite desmarcar apenas se o slot pertencer à equipe ativa
+        // Permite desmarcar APENAS se o slot pertencer à equipe ativa
         if (existingEquipe === activeEquipe) {
           deleteDocumentNonBlocking(docRef);
         }
@@ -119,7 +118,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Erro tratado pelo global emitter
+        // Erro tratado globalmente
       }
     }
   };
@@ -130,7 +129,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     if (activeEquipe === null) {
       setIsSelectionError(true);
       setTimeout(() => setIsSelectionError(false), 1600);
-      
       toast({
         variant: "destructive",
         title: "Selecione uma Equipe",
@@ -142,10 +140,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
     const existingEquipe = occupiedSlotsMap[time];
     
+    // Se o slot pertence à OUTRA equipe, não iniciamos nenhuma ação
+    if (existingEquipe && existingEquipe !== activeEquipe) {
+      return;
+    }
+
     setDragStart({ type, index });
     setDragEnd({ type, index });
-    
-    // Se o slot estiver ocupado pela equipe ativa, a ação é liberar. Caso contrário, ocupar.
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
   };
 
@@ -198,19 +199,18 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             index >= Math.min(dragStart.index, dragEnd.index) && 
             index <= Math.max(dragStart.index, dragEnd.index);
 
-          // Lógica visual para o arraste
           let visualEquipe = equipeId;
           let visualOccupied = isOccupied;
 
-          if (isInDragRange) {
+          if (isInDragRange && dragAction) {
             if (dragAction === 'occupy') {
-              // Só mostra como ocupado no arraste se o slot estiver livre originalmente
+              // Só visualiza como ocupado no arraste se o slot estiver LIVRE
               if (!isOccupied) {
                 visualOccupied = true;
                 visualEquipe = activeEquipe!;
               }
             } else if (dragAction === 'free') {
-              // Só mostra como livre no arraste se o slot pertencer à equipe ativa
+              // Só visualiza como livre no arraste se o slot pertencer à equipe ATIVA
               if (equipeId === activeEquipe) {
                 visualOccupied = false;
                 visualEquipe = undefined;
@@ -230,7 +230,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               }}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
-                isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
+                isEditable && activeEquipe !== null && (!isOccupied || equipeId === activeEquipe) ? "cursor-pointer" : "cursor-default",
                 isHourStart && "border-l-2 border-l-white/20",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
