@@ -34,11 +34,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
   const [isSelectionError, setIsSelectionError] = useState(false);
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
+  const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
-  // Sincronização com o horário da internet (sistema local)
+  // Sincronização com o horário do sistema
   useEffect(() => {
-    const updateShift = () => {
-      const hours = new Date().getHours();
+    const updateTime = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      
+      setCurrentTime({ h: hours, m: minutes });
+
       // Das 00:00 até 13:59 -> Manhã (Turno 1)
       // Das 14:00 até 20:59 -> Tarde (Turno 2)
       if (hours < 14) {
@@ -48,8 +54,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       }
     };
 
-    updateShift();
-    const interval = setInterval(updateShift, 60000); // Checa a cada minuto
+    updateTime();
+    const interval = setInterval(updateTime, 60000); // Checa a cada minuto
     return () => clearInterval(interval);
   }, []);
 
@@ -133,7 +139,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Erro tratado globalmente via FirebaseErrorListener
+        // Erro tratado globalmente
       }
     }
   };
@@ -209,6 +215,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const isOccupied = !!equipeId;
           const isHourStart = time.endsWith(":00");
           
+          // Verificação se o horário já passou
+          const [slotH, slotM] = time.split(":").map(Number);
+          const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
+
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
             index >= Math.min(dragStart.index, dragEnd.index) && 
@@ -246,7 +256,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
-                isInDragRange && dragAction === 'free' && (activeEquipe === null || equipeId === activeEquipe) && "bg-muted/40 ring-2 ring-inset ring-accent/20"
+                isInDragRange && dragAction === 'free' && (activeEquipe === null || equipeId === activeEquipe) && "bg-muted/40 ring-2 ring-inset ring-accent/20",
+                // Estilo para horários passados
+                isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
               )}
             >
               {visualOccupied ? (
@@ -344,19 +356,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       <div className="space-y-0.5">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
-
-        {/* Intervalo discreto entre turnos apenas se ambos pudessem ser visíveis */}
-        {!visibleShift && (
-          <div className="flex justify-center py-0.5 relative">
-            <div className="flex items-center gap-1.5 bg-muted/20 px-3 py-0.5 rounded-full border border-border/20">
-              <Coffee className="h-2.5 w-2.5 text-muted-foreground/30" />
-              <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.1em] leading-none">
-                Intervalo
-              </span>
-            </div>
-          </div>
-        )}
-
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
