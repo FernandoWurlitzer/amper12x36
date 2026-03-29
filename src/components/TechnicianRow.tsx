@@ -93,8 +93,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           equipe: activeEquipe
         }, { merge: true });
       } else if (action === 'free') {
-        // Se nenhuma equipe estiver selecionada, apaga qualquer uma.
-        // Se uma equipe estiver selecionada, apaga apenas se for a mesma equipe (toggle)
         if (activeEquipe === null || occupiedSlotsMap[time] === activeEquipe) {
           deleteDocumentNonBlocking(docRef);
         }
@@ -179,13 +177,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
     <div className="space-y-0.5 select-none">
-      <div className="flex items-center gap-1.5 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1 mb-0.5">
+      <div className="flex items-center gap-1.5 text-[7px] font-bold text-muted-foreground uppercase tracking-wider px-1">
         {type === 'morning' ? <Sunrise className="h-2 w-2" /> : <Sunset className="h-2 w-2" />}
         {type === 'morning' ? 'Turno 1 (08:00 - 14:00)' : 'Turno 2 (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-24 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
-        compact && "h-16",
+        "flex h-14 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -226,7 +223,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && !visualOccupied && "border-l-2 border-l-white/20",
+                isHourStart && !visualOccupied && "border-l border-l-white/20",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
@@ -234,14 +231,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               {visualOccupied ? (
-                <span className="text-[10px] font-black text-white drop-shadow-sm pointer-events-none select-none">
+                <span className="text-[9px] font-black text-white drop-shadow-sm pointer-events-none select-none">
                   E{visualEquipe}
                 </span>
               ) : (
                 isHourStart && (
                   <div className={cn(
-                    "text-[9px] font-black leading-none select-none pointer-events-none transition-colors",
-                    "text-white"
+                    "text-[8px] font-black leading-none select-none pointer-events-none transition-colors",
+                    "text-white/60"
                   )}>
                     {time}
                   </div>
@@ -257,66 +254,65 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-4 space-y-0.5 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
+      "bg-card border rounded-xl p-2.5 space-y-1 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-3"
+      compact && "p-2"
     )}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-0.5">
+        <div className="flex items-center gap-2">
           <div className={cn(
-            "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-sm select-none shadow-sm shadow-primary/20",
-            compact && "h-8 w-8 text-xs"
+            "flex h-8 w-8 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none shadow-sm shadow-primary/20",
           )}>
             {initials}
           </div>
           <div>
-            <h3 className={cn("font-bold text-base text-foreground tracking-tight", compact && "text-sm")}>{technician.name}</h3>
+            <h3 className={cn("font-bold text-sm text-foreground tracking-tight")}>{technician.name}</h3>
             {!compact && (
-              <p className="text-[9px] text-muted-foreground flex items-center gap-1 opacity-70">
-                <Clock className="h-2.5 w-2.5" />
+              <p className="text-[8px] text-muted-foreground flex items-center gap-1 opacity-70">
+                <Clock className="h-2 w-2" />
                 Sincronizado via Nuvem
               </p>
             )}
           </div>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {isEditable && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
                 className={cn(
-                  "flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group p-1.5 rounded-lg border",
+                  "flex items-center gap-1 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-md border",
                   activeEquipe === 1 ? "bg-accent/10 border-accent/30" : "bg-transparent border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary/50"
+                  isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
                 <div className={cn(
-                  "w-2.5 h-2.5 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 1 ? "bg-accent shadow-[0_0_10px_hsl(var(--accent))]" : "bg-muted"
+                  "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
+                  activeEquipe === 1 ? "bg-accent shadow-[0_0_5px_hsl(var(--accent))]" : "bg-muted"
                 )} />
                 <span className={cn(
-                  "text-[10px] font-black uppercase tracking-wider transition-colors",
+                  "text-[8px] font-black uppercase tracking-wider transition-colors",
                   activeEquipe === 1 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>Equipe 1</span>
+                )}>E1</span>
               </button>
 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
                 className={cn(
-                  "flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group p-1.5 rounded-lg border",
+                  "flex items-center gap-1 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-md border",
                   activeEquipe === 2 ? "bg-green-500/10 border-green-500/30" : "bg-transparent border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary/50"
+                  isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
                 <div className={cn(
-                  "w-2.5 h-2.5 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_10px_#22c55e]" : "bg-muted"
+                  "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
+                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_5px_#22c55e]" : "bg-muted"
                 )} />
                 <span className={cn(
-                  "text-[10px] font-black uppercase tracking-wider transition-colors",
+                  "text-[8px] font-black uppercase tracking-wider transition-colors",
                   activeEquipe === 2 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>Equipe 2</span>
+                )}>E2</span>
               </button>
             </div>
           )}
@@ -326,22 +322,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               variant="ghost" 
               size="sm" 
               onClick={handleClearAll}
-              className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
+              className="h-6 text-[8px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Limpar Agenda
+              <Trash2 className="h-3 w-3" />
+              Limpar
             </Button>
           )}
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-2 relative">
-          <div className="flex items-center gap-2 bg-muted/20 px-4 py-1 rounded-full border border-border/30">
-            <Coffee className="h-3 w-3 text-muted-foreground/40" />
-            <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] leading-none">
+        <div className="flex justify-center py-0.5 relative">
+          <div className="flex items-center gap-1.5 bg-muted/20 px-3 py-0.5 rounded-full border border-border/20">
+            <Coffee className="h-2.5 w-2.5 text-muted-foreground/30" />
+            <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.1em] leading-none">
               Intervalo
             </span>
           </div>
@@ -350,29 +346,29 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/30 mt-1.5">
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-accent shadow-sm" />
-            <span className="font-medium">Equipe 1</span>
+      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/20 mt-0.5">
+        <div className="flex gap-3">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-sm bg-accent" />
+            <span>E1</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-green-500 shadow-sm" />
-            <span className="font-medium">Equipe 2</span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-sm bg-green-500" />
+            <span>E2</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-available/50 border border-border shadow-sm" />
-            <span className="font-medium">Livre</span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-sm bg-available/50 border border-border" />
+            <span>Livre</span>
           </div>
         </div>
         <p className={cn(
-          "text-white/60 font-black text-[9px] uppercase tracking-[0.1em] transition-all",
+          "text-white/40 font-black text-[7px] uppercase tracking-[0.05em] transition-all",
           isSelectionError && "text-primary animate-pulse scale-105"
         )}>
           {isEditable ? (
-            activeEquipe === null ? "CLIQUE NOS OCUPADOS PARA APAGAR OU SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA MARCAR OU SOBREPOR"
+            activeEquipe === null ? "APAGAR (CLIQUE) OU SELECIONAR EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE"
           ) : (
-            "MODO DE VISUALIZAÇÃO"
+            "VISUALIZAÇÃO"
           )}
         </p>
       </div>
