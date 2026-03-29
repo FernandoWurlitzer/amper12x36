@@ -216,7 +216,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span>Livre</span>
           </div>
         </div>
-        {!compact && <p className="hidden md:block text-primary/70 font-bold">Clique e arraste para marcar múltiplos horários</p>}
+        {!compact && (
+          <p className="hidden md:block text-white font-bold text-[11px] uppercase tracking-wider opacity-90">
+            Clique e arraste para marcar múltiplos horários
+          </p>
+        )}
       </div>
     </div>
   );
