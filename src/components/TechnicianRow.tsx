@@ -114,7 +114,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Erro tratado globalmente
+        // Erro tratado globalmente via FirebaseErrorListener
       }
     }
   };
@@ -137,7 +137,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         toast({
           variant: "destructive",
           title: "Selecione uma Equipe",
-          description: "Selecione EQUIPE 1 ou EQUIPE 2 para marcar. Clique em um horário ocupado para apagar.",
+          description: "Selecione EQUIPE 1 ou EQUIPE 2 para marcar.",
         });
       }
       return;
@@ -282,17 +282,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
                 className={cn(
-                  "flex items-center gap-1 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-md border",
-                  activeEquipe === 1 ? "bg-accent/10 border-accent/30" : "bg-transparent border-transparent",
+                  "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
+                  activeEquipe === 1 ? "bg-accent/10 border-accent/30" : "bg-muted/20 border-transparent",
                   isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
                 <div className={cn(
                   "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 1 ? "bg-accent shadow-[0_0_5px_hsl(var(--accent))]" : "bg-muted"
+                  activeEquipe === 1 ? "bg-accent shadow-[0_0_8px_hsl(var(--accent))]" : "bg-muted"
                 )} />
                 <span className={cn(
-                  "text-[8px] font-black uppercase tracking-wider transition-colors",
+                  "text-[9px] font-black uppercase tracking-wider transition-colors",
                   activeEquipe === 1 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
                 )}>E1</span>
               </button>
@@ -300,33 +300,31 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
                 className={cn(
-                  "flex items-center gap-1 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-md border",
-                  activeEquipe === 2 ? "bg-green-500/10 border-green-500/30" : "bg-transparent border-transparent",
+                  "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
+                  activeEquipe === 2 ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-transparent",
                   isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
                 <div className={cn(
                   "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_5px_#22c55e]" : "bg-muted"
+                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-muted"
                 )} />
                 <span className={cn(
-                  "text-[8px] font-black uppercase tracking-wider transition-colors",
+                  "text-[9px] font-black uppercase tracking-wider transition-colors",
                   activeEquipe === 2 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
                 )}>E2</span>
               </button>
-            </div>
-          )}
 
-          {isEditable && !compact && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleClearAll}
-              className="h-6 text-[8px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
-            >
-              <Trash2 className="h-3 w-3" />
-              Limpar
-            </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleClearAll}
+                className="h-7 text-[9px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Limpar
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -366,7 +364,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           isSelectionError && "text-primary animate-pulse scale-105"
         )}>
           {isEditable ? (
-            activeEquipe === null ? "APAGAR (CLIQUE) OU SELECIONAR EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE"
+            activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR OU CLIQUE PARA APAGAR" : "CLIQUE E ARRASTE"
           ) : (
             "VISUALIZAÇÃO"
           )}
