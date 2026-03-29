@@ -1,4 +1,4 @@
-import { CalendarDays, ShieldCheck } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 export function Header() {
   return (
@@ -9,10 +9,6 @@ export function Header() {
             <CalendarDays className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-primary">Agendamento Tech</h1>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-accent font-medium bg-accent/10 px-3 py-1.5 rounded-full">
-          <ShieldCheck className="h-4 w-4" />
-          <span>Sistema Ativo</span>
         </div>
       </div>
     </header>
