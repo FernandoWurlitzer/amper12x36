@@ -46,6 +46,16 @@ export function ScheduleManager() {
 
   const copyPublicLink = () => {
     const url = window.location.href;
+    // Se estiver no ambiente de desenvolvimento do Studio, avisar o usuário
+    if (url.includes('workstations.cloud.google.com')) {
+      toast({
+        variant: "destructive",
+        title: "Atenção!",
+        description: "Você está no modo editor. Use o link do App Hosting (Console Firebase) para compartilhar.",
+      });
+      return;
+    }
+    
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copiado!",
@@ -154,7 +164,7 @@ export function ScheduleManager() {
               </div>
               <div className="space-y-1">
                 <p className="font-medium text-foreground">Compartilhar Acesso</p>
-                <p className="text-xs">Envie este link para que outros vejam a agenda online.</p>
+                <p className="text-xs">Use o link público do App Hosting para que outros vejam a agenda online.</p>
               </div>
             </div>
             <Button 
@@ -163,7 +173,7 @@ export function ScheduleManager() {
               className="w-full gap-2 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all text-xs"
             >
               <Copy className="h-3 w-3" />
-              Copiar Link Público
+              Copiar Link da Página
             </Button>
           </CardContent>
         </Card>
