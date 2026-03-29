@@ -12,7 +12,7 @@ export type Technician = {
 
 const TECHNICIANS: Technician[] = [
   { id: "tech-1", name: "Francisco Beltrão" },
-  { id: "tech-2", name: "Maria Santos" },
+  { id: "tech-2", name: "Ponta Grossa" },
   { id: "tech-3", name: "Ricardo Lima" },
 ];
 
