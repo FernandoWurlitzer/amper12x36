@@ -19,8 +19,8 @@ export function Auth() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState("tac.ampernet@ampernet.com.br");
-  const [password, setPassword] = useState("tac@2026F");
+  const [email, setEmail] = useState("amper.tac@ampernet.com.br");
+  const [password, setPassword] = useState("tac2026F");
 
   useEffect(() => {
     const handleAuthError = (err: Error) => {
@@ -78,7 +78,7 @@ export function Auth() {
             <label className="text-sm font-medium text-muted-foreground">Usuário / E-mail</label>
             <Input 
               type="email" 
-              placeholder="ex: tac.ampernet@ampernet.com.br" 
+              placeholder="ex: amper.tac@ampernet.com.br" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-background/50 border-border/50 focus:border-primary/50"
