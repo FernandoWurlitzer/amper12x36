@@ -30,12 +30,10 @@ export default function TecnicosPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Estados para o formulário
   const [techName, setTechName] = useState("");
   const [techPhoneTariff, setTechPhoneTariff] = useState("");
   const [techPhonePersonal, setTechPhonePersonal] = useState("");
 
-  // Verificar permissão TAC
   const tacMemberRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_tac_members', user.uid);
@@ -68,7 +66,6 @@ export default function TecnicosPage() {
       createdAt: new Date().toISOString()
     });
 
-    // Limpar formulário
     setTechName("");
     setTechPhoneTariff("");
     setTechPhonePersonal("");
@@ -127,7 +124,6 @@ export default function TecnicosPage() {
               </CardHeader>
               <CardContent className="p-8">
                 <div className="space-y-6">
-                  {/* Campo Nome */}
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nome Completo</Label>
                     <Input 
@@ -140,11 +136,10 @@ export default function TecnicosPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {/* Campo Telefone Tarifa */}
                     <div className="space-y-2">
                       <Label htmlFor="tariff" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <Phone className="h-3 w-3" />
-                        Telefone Tarifa
+                        TELEFONE/WHATSAPP TARIFA
                       </Label>
                       <Input 
                         id="tariff"
@@ -155,11 +150,10 @@ export default function TecnicosPage() {
                       />
                     </div>
 
-                    {/* Campo Telefone Pessoal */}
                     <div className="space-y-2">
                       <Label htmlFor="personal" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <Phone className="h-3 w-3" />
-                        Telefone Pessoal
+                        TELEFONE/WHATSAPP PESSOAL
                       </Label>
                       <Input 
                         id="personal"
