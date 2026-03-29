@@ -175,10 +175,10 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
                 >
                   {/* Interval Label logic - centered across 4 slots (13:00 to 14:00) */}
                   {isInterval && time === "13:00" && (
-                    <div className="absolute inset-y-0 left-0 w-[400%] flex items-center justify-center pointer-events-none z-20">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap bg-background/60 px-3 py-1 rounded-full border border-border/50 backdrop-blur-md shadow-sm scale-90 md:scale-100">
-                        <Coffee className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo</span>
+                    <div className="absolute inset-y-0 left-0 w-[400%] flex items-center justify-center pointer-events-none z-20 overflow-hidden">
+                      <div className="flex items-center gap-1 whitespace-nowrap bg-background/60 px-2 py-0.5 rounded-full border border-border/50 backdrop-blur-md shadow-sm scale-75 md:scale-90">
+                        <Coffee className="h-2.5 w-2.5 text-muted-foreground" />
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Intervalo</span>
                       </div>
                     </div>
                   )}
