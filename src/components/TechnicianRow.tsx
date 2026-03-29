@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -95,7 +94,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        console.error("Erro ao limpar agenda:", e);
+        // Error is handled by global emitter if permissions fail
       }
     }
   };
@@ -226,13 +225,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         )}
       </div>
 
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-0.5">
-          <div className="flex items-center gap-2 bg-muted/30 border border-border/40 px-3 py-0.5 rounded-full scale-75">
-            <Coffee className="h-2.5 w-2.5 text-muted-foreground" />
-            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">Intervalo (13:00 - 14:00)</span>
+        <div className="flex justify-center py-1">
+          <div className="flex items-center gap-2.5 bg-muted/40 border border-border/50 px-4 py-1 rounded-full">
+            <Coffee className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
+              Intervalo (13:00 - 14:00)
+            </span>
           </div>
         </div>
 
