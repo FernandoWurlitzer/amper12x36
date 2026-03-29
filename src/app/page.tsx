@@ -17,7 +17,7 @@ export default function Home() {
         </div>
       </main>
       <footer className="p-8 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} Amper 12x36. Todos os direitos reservados.
+        &copy; {new Date().getFullYear()} AMPERNET 12x36. Todos os direitos reservados.
       </footer>
     </div>
   );

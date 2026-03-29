@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -16,7 +15,7 @@ export function Header() {
         <div className="flex items-center gap-4">
           <div className="relative h-14 w-14 overflow-hidden rounded-2xl shadow-xl shadow-primary/20 bg-white/5 flex items-center justify-center border border-primary/10">
             <Image
-              src={(!imgError && logo?.imageUrl) ? logo.imageUrl : "https://picsum.photos/seed/amper/200/200"}
+              src={(!imgError && logo?.imageUrl) ? logo.imageUrl : "/logo.png"}
               alt="Amper Logo"
               fill
               className="object-contain scale-125 transition-transform duration-500 hover:scale-150"
@@ -25,8 +24,7 @@ export function Header() {
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tighter text-primary leading-none">Amper</h1>
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Tecnologia 12x36</span>
+            <h1 className="text-2xl font-black tracking-tighter text-primary leading-none uppercase">AMPERNET 12x36</h1>
           </div>
         </div>
         <Auth />

@@ -4,7 +4,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Amper 12x36',
+  title: 'AMPERNET 12x36',
   description: 'Gerenciamento de agenda técnica',
 };
 
