@@ -24,7 +24,7 @@ export function Header() {
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-xl md:text-2xl tracking-tighter text-foreground leading-none flex items-start font-michroma lowercase">
+            <h1 className="text-2xl md:text-3xl tracking-tighter text-foreground leading-none flex items-start font-michroma lowercase">
               <span className="font-normal">ampernet</span>
               <span className="text-[10px] md:text-xs font-medium ml-0.5 mt-0.5 opacity-80 font-body align-top">12x36</span>
             </h1>
