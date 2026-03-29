@@ -6,7 +6,7 @@ import { Auth } from "./Auth";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard } from "lucide-react";
+import { CalendarRange } from "lucide-react";
 
 export function Header() {
   const logo = PlaceHolderImages.find(img => img.id === "amper-logo");
@@ -39,7 +39,7 @@ export function Header() {
           
           <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
             <Link href="/">
-              <LayoutDashboard className="h-4 w-4" />
+              <CalendarRange className="h-4 w-4" />
               Dashboard
             </Link>
           </Button>
