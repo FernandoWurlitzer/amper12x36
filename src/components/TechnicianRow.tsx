@@ -36,7 +36,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
-  // Sincronização com o horário do sistema
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -45,6 +44,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
+      // Sincronização conforme solicitado:
       // Das 00:00 até 13:59 -> Manhã (Turno 1)
       // Das 14:00 até 20:59 -> Tarde (Turno 2)
       if (hours < 14) {
@@ -55,7 +55,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 60000); // Checa a cada minuto
+    const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -89,11 +89,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    for (let h = 8; h < 14; h++) {
+    // Turno 1: 08:00 às 13:00 (Intervalo inicia às 13:00)
+    for (let h = 8; h < 13; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
+    // Turno 2: 14:00 às 20:00
     for (let h = 14; h < 20; h++) {
       for (let m = 0; m < 60; m += 15) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -138,9 +140,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           title: "Agenda Limpa",
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
-      } catch (e) {
-        // Erro tratado globalmente
-      }
+      } catch (e) {}
     }
   };
 
@@ -202,9 +202,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
     <div className="space-y-0.5 select-none animate-in fade-in slide-in-from-top-1 duration-500">
-      <div className="flex items-center gap-1.5 text-[7px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-2 w-2 text-orange-400" /> : <Sunset className="h-2 w-2 text-blue-400" />}
-        {type === 'morning' ? 'Turno 1 (08:00 - 14:00)' : 'Turno 2 (14:00 - 20:00)'}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-1.5 text-[7px] font-bold text-muted-foreground uppercase tracking-wider">
+          {type === 'morning' ? <Sunrise className="h-2 w-2 text-orange-400" /> : <Sunset className="h-2 w-2 text-blue-400" />}
+          {type === 'morning' ? 'Turno 1 (08:00 - 13:00)' : 'Turno 2 (14:00 - 20:00)'}
+        </div>
+        {type === 'morning' && (
+          <div className="flex items-center gap-1 text-[6px] font-black text-primary/60 uppercase">
+            <Coffee className="h-2 w-2" />
+            Intervalo 13h - 14h
+          </div>
+        )}
       </div>
       <div className={cn(
         "flex h-14 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
@@ -215,7 +223,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const isOccupied = !!equipeId;
           const isHourStart = time.endsWith(":00");
           
-          // Verificação se o horário já passou
           const [slotH, slotM] = time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
@@ -246,18 +253,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               key={time}
               onMouseDown={() => handleMouseDown(type, index)}
               onMouseEnter={() => handleMouseEnter(type, index)}
-              style={{ 
-                transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms'
-              }}
+              style={{ transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms' }}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && !visualOccupied && "border-l border-l-white/20",
+                isHourStart && !visualOccupied && "border-l border-l-white/10",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && (activeEquipe === null || equipeId === activeEquipe) && "bg-muted/40 ring-2 ring-inset ring-accent/20",
-                // Estilo para horários passados
                 isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
               )}
             >
@@ -267,10 +271,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 </span>
               ) : (
                 isHourStart && (
-                  <div className={cn(
-                    "text-[8px] font-black leading-none select-none pointer-events-none transition-colors",
-                    "text-white/60"
-                  )}>
+                  <div className="text-[8px] font-black leading-none select-none pointer-events-none text-white/60">
                     {time}
                   </div>
                 )
@@ -291,14 +292,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     )}>
       <div className="flex items-center justify-between mb-0.5">
         <div className="flex items-center gap-2">
-          <div className={cn(
-            "flex h-8 w-8 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none shadow-sm shadow-primary/20",
-          )}>
+          <div className="flex h-8 w-8 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none shadow-sm shadow-primary/20">
             {initials}
           </div>
-          <div>
-            <h3 className={cn("font-bold text-sm text-foreground tracking-tight uppercase")}>{technician.name}</h3>
-          </div>
+          <h3 className="font-bold text-sm text-foreground tracking-tight uppercase">{technician.name}</h3>
         </div>
         
         <div className="flex items-center gap-4">
@@ -312,14 +309,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                   isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
-                <div className={cn(
-                  "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 1 ? "bg-accent shadow-[0_0_8px_hsl(var(--accent))]" : "bg-muted"
-                )} />
-                <span className={cn(
-                  "text-[9px] font-black uppercase tracking-wider transition-colors",
-                  activeEquipe === 1 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>E1</span>
+                <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 1 ? "bg-accent shadow-[0_0_8px_hsl(var(--accent))]" : "bg-muted")} />
+                <span className={cn("text-[9px] font-black uppercase tracking-wider", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
 
               <button 
@@ -330,14 +321,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                   isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
                 )}
               >
-                <div className={cn(
-                  "w-2 h-2 rounded-full border border-white/10 transition-all duration-300",
-                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-muted"
-                )} />
-                <span className={cn(
-                  "text-[9px] font-black uppercase tracking-wider transition-colors",
-                  activeEquipe === 2 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>E2</span>
+                <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 2 ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-muted")} />
+                <span className={cn("text-[9px] font-black uppercase tracking-wider", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
 
               <Button 
@@ -374,15 +359,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span>Livre</span>
           </div>
         </div>
-        <p className={cn(
-          "text-white/40 font-black text-[7px] uppercase tracking-[0.05em] transition-all",
-          isSelectionError && "text-primary animate-pulse scale-105"
-        )}>
-          {isEditable ? (
-            activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR OU CLIQUE PARA APAGAR" : "CLIQUE E ARRASTE"
-          ) : (
-            "MODO VISUALIZAÇÃO"
-          )}
+        <p className={cn("text-white/40 font-black text-[7px] uppercase tracking-[0.05em]", isSelectionError && "text-primary animate-pulse")}>
+          {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR OU CLIQUE PARA APAGAR" : "CLIQUE E ARRASTE") : "MODO VISUALIZAÇÃO"}
         </p>
       </div>
     </div>
