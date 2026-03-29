@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
 
 export type Technician = {
@@ -33,12 +32,22 @@ export function ScheduleManager() {
     localStorage.setItem("agendamento-tech-v1", JSON.stringify(data));
   };
 
-  const handleToggleSlot = (techId: string, slotId: string) => {
+  const handleToggleSlots = (techId: string, slotIds: string[]) => {
     setScheduleData((prev) => {
       const currentTechSlots = prev[techId] || [];
-      const updatedSlots = currentTechSlots.includes(slotId)
-        ? currentTechSlots.filter((id) => id !== slotId)
-        : [...currentTechSlots, slotId];
+      // Se o primeiro slot da seleção estiver livre, marcamos todos como ocupados.
+      // Se estiver ocupado, limpamos todos na seleção.
+      const firstSlotId = slotIds[0];
+      const shouldOccupy = !currentTechSlots.includes(firstSlotId);
+      
+      let updatedSlots;
+      if (shouldOccupy) {
+        // Adiciona os novos slots garantindo que não haja duplicatas
+        updatedSlots = Array.from(new Set([...currentTechSlots, ...slotIds]));
+      } else {
+        // Remove os slots da seleção
+        updatedSlots = currentTechSlots.filter((id) => !slotIds.includes(id));
+      }
       
       const newData = { ...prev, [techId]: updatedSlots };
       saveToLocalStorage(newData);
@@ -64,7 +73,7 @@ export function ScheduleManager() {
             key={tech.id}
             technician={tech}
             occupiedSlots={scheduleData[tech.id] || []}
-            onToggleSlot={(slotId) => handleToggleSlot(tech.id, slotId)}
+            onToggleSlots={(slotIds) => handleToggleSlots(tech.id, slotIds)}
           />
         ))}
       </div>
@@ -75,7 +84,7 @@ export function ScheduleManager() {
           <div className="space-y-1">
             <p className="font-medium text-foreground">Informações de Uso</p>
             <ul className="list-disc list-inside space-y-0.5">
-              <li>Clique nos blocos para marcar ou desmarcar a indisponibilidade.</li>
+              <li>Clique e arraste com o mouse para marcar ou desmarcar vários blocos de uma vez.</li>
               <li>Cada bloco representa 15 minutos de atendimento.</li>
               <li>As alterações são salvas automaticamente.</li>
             </ul>

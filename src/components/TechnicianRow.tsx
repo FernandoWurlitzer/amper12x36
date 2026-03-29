@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { User, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
@@ -8,10 +8,14 @@ import { Technician } from "./ScheduleManager";
 type Props = {
   technician: Technician;
   occupiedSlots: string[];
-  onToggleSlot: (slotId: string) => void;
+  onToggleSlots: (slotIds: string[]) => void;
 };
 
-export function TechnicianRow({ technician, occupiedSlots, onToggleSlot }: Props) {
+export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Props) {
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragEnd, setDragEnd] = useState<number | null>(null);
+  const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
+
   // Generate slots from 08:00 to 20:00 every 15 mins
   const slots = useMemo(() => {
     const hours = [];
@@ -25,7 +29,6 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlot }: Props
     return hours;
   }, []);
 
-  // Visual grouping of hours for labels
   const hourHeaders = useMemo(() => {
     const headers = [];
     for (let h = 8; h < 20; h++) {
@@ -34,8 +37,39 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlot }: Props
     return headers;
   }, []);
 
+  const handleMouseDown = (index: number) => {
+    setDragStart(index);
+    setDragEnd(index);
+    setDragAction(occupiedSlots.includes(slots[index]) ? 'free' : 'occupy');
+  };
+
+  const handleMouseEnter = (index: number) => {
+    if (dragStart !== null) {
+      setDragEnd(index);
+    }
+  };
+
+  const handleMouseUp = useCallback(() => {
+    if (dragStart !== null && dragEnd !== null) {
+      const min = Math.min(dragStart, dragEnd);
+      const max = Math.max(dragStart, dragEnd);
+      const selectedRange = slots.slice(min, max + 1);
+      onToggleSlots(selectedRange);
+    }
+    setDragStart(null);
+    setDragEnd(null);
+    setDragAction(null);
+  }, [dragStart, dragEnd, slots, onToggleSlots]);
+
+  useEffect(() => {
+    if (dragStart !== null) {
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => window.removeEventListener("mouseup", handleMouseUp);
+    }
+  }, [dragStart, handleMouseUp]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 select-none">
       <div className="flex items-center gap-3">
         <div className="bg-secondary p-2 rounded-lg text-primary">
           <User className="h-5 w-5" />
@@ -66,17 +100,27 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlot }: Props
               const isOccupied = occupiedSlots.includes(time);
               const isHourStart = time.endsWith(":00");
               
+              const isInDragRange = dragStart !== null && dragEnd !== null && 
+                index >= Math.min(dragStart, dragEnd) && 
+                index <= Math.max(dragStart, dragEnd);
+
               return (
-                <button
+                <div
                   key={time}
-                  onClick={() => onToggleSlot(time)}
+                  onMouseDown={() => handleMouseDown(index)}
+                  onMouseEnter={() => handleMouseEnter(index)}
                   title={`${time} - ${isOccupied ? 'Indisponível' : 'Disponível'}`}
                   className={cn(
-                    "group flex-1 relative transition-all duration-300 border-r last:border-r-0 hover:z-10",
+                    "group flex-1 relative transition-all duration-300 border-r last:border-r-0 hover:z-10 cursor-pointer",
                     isHourStart && "border-l-2 border-l-primary/10",
                     isOccupied 
                       ? "bg-accent shadow-inner text-white" 
-                      : "bg-transparent hover:bg-secondary/50"
+                      : "bg-transparent hover:bg-secondary/50",
+                    isInDragRange && (
+                      dragAction === 'occupy' 
+                        ? "bg-accent/80" 
+                        : "bg-white/40 shadow-none border-dashed ring-2 ring-inset ring-accent/20"
+                    )
                   )}
                 >
                   <div className={cn(
@@ -86,13 +130,12 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlot }: Props
                     <div className="h-full w-[1px] bg-current transform scale-y-50" />
                   </div>
                   
-                  {isOccupied && (
+                  {isOccupied && !isInDragRange && (
                     <div className="absolute inset-0 bg-accent/20 animate-pulse" />
                   )}
 
-                  {/* Tiny accessibility label or visual hint */}
                   <span className="sr-only">{time}</span>
-                </button>
+                </div>
               );
             })}
           </div>
