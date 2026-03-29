@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { User, Clock } from "lucide-react";
+import { User, Clock, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -57,13 +57,18 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     if (!isEditable || !user || !firestore) return;
 
     slotIds.forEach(time => {
+      // Prevent editing the hardcoded interval slots if desired, 
+      // but usually we just want them marked.
+      const isInterval = time >= "13:00" && time < "14:00";
+      if (isInterval) return;
+
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
       
       if (action === 'occupy') {
         setDocumentNonBlocking(docRef, {
           technicianId: technician.id,
-          startTime: time, // For reference in MVP
-          endTime: time,   // For reference in MVP
+          startTime: time,
+          endTime: time,
           markedByUserId: user.uid,
           updatedAt: serverTimestamp()
         }, { merge: true });
@@ -75,9 +80,12 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
 
   const handleMouseDown = (index: number) => {
     if (!isEditable) return;
+    const time = slots[index];
+    if (time >= "13:00" && time < "14:00") return; // Prevent interaction with interval
+
     setDragStart(index);
     setDragEnd(index);
-    setDragAction(occupiedSlots.includes(slots[index]) ? 'free' : 'occupy');
+    setDragAction(occupiedSlots.includes(time) ? 'free' : 'occupy');
   };
 
   const handleMouseEnter = (index: number) => {
@@ -139,6 +147,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
             {slots.map((time, index) => {
               const isOccupied = occupiedSlots.includes(time);
               const isHourStart = time.endsWith(":00");
+              const isInterval = time >= "13:00" && time < "14:00";
               
               const isInDragRange = dragStart !== null && dragEnd !== null && 
                 index >= Math.min(dragStart, dragEnd) && 
@@ -147,24 +156,34 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
               // Visual state during drag
               const visualOccupied = isInDragRange 
                 ? (dragAction === 'occupy') 
-                : isOccupied;
+                : (isOccupied || isInterval);
 
               return (
                 <div
                   key={time}
                   onMouseDown={() => handleMouseDown(index)}
                   onMouseEnter={() => handleMouseEnter(index)}
-                  title={`${time} - ${isOccupied ? 'Indisponível' : 'Disponível'}${!isEditable ? ' (Apenas visualização)' : ''}`}
+                  title={`${time} - ${isInterval ? 'INTERVALO' : (isOccupied ? 'Indisponível' : 'Disponível')}${!isEditable ? ' (Apenas visualização)' : ''}`}
                   className={cn(
                     "group flex-1 relative transition-all duration-300 border-r border-border last:border-r-0 hover:z-10",
-                    isEditable ? "cursor-pointer" : "cursor-default",
+                    isEditable && !isInterval ? "cursor-pointer" : "cursor-default",
                     isHourStart && "border-l-2 border-l-primary/10",
-                    visualOccupied 
-                      ? "bg-accent shadow-inner text-white" 
-                      : isEditable ? "bg-transparent hover:bg-secondary/50" : "bg-transparent",
+                    isInterval 
+                      ? "bg-muted shadow-none cursor-not-allowed" 
+                      : (visualOccupied ? "bg-accent shadow-inner text-white" : (isEditable ? "bg-transparent hover:bg-secondary/50" : "bg-transparent")),
                     isInDragRange && dragAction === 'free' && "bg-muted/40 shadow-none border-dashed ring-2 ring-inset ring-accent/20"
                   )}
                 >
+                  {/* Interval Label logic */}
+                  {isInterval && time === "13:30" && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap bg-background/50 px-2 py-0.5 rounded-full border border-border/50 backdrop-blur-sm">
+                        <Coffee className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Intervalo</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className={cn(
                     "absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
                     visualOccupied ? "text-white/40" : "text-primary/20"
@@ -172,7 +191,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
                     <div className="h-full w-[1px] bg-current transform scale-y-50" />
                   </div>
                   
-                  {isOccupied && !isInDragRange && (
+                  {isOccupied && !isInDragRange && !isInterval && (
                     <div className="absolute inset-0 bg-accent/20 animate-pulse" />
                   )}
 
