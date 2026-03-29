@@ -23,9 +23,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
   
-  // Local state for technician active dots
-  const [tech1Active, setTech1Active] = useState(false);
-  const [tech2Active, setTech2Active] = useState(false);
+  // Local state for active team (exclusive selection)
+  const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
 
   const initials = useMemo(() => {
     return technician.name
@@ -223,31 +222,31 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           {isEditable && (
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => setTech1Active(!tech1Active)}
+                onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
                 className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
               >
                 <div className={cn(
                   "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
-                  tech1Active ? "bg-accent shadow-[0_0_10px_hsl(var(--accent))]" : "bg-muted"
+                  activeEquipe === 1 ? "bg-accent shadow-[0_0_10px_hsl(var(--accent))]" : "bg-muted"
                 )} />
                 <span className={cn(
                   "text-[10px] font-black uppercase tracking-wider transition-colors",
-                  tech1Active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>Técnico 1</span>
+                  activeEquipe === 1 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
+                )}>Equipe 1</span>
               </button>
 
               <button 
-                onClick={() => setTech2Active(!tech2Active)}
+                onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
                 className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
               >
                 <div className={cn(
                   "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
-                  tech2Active ? "bg-green-500 shadow-[0_0_10px_#22c55e]" : "bg-muted"
+                  activeEquipe === 2 ? "bg-green-500 shadow-[0_0_10px_#22c55e]" : "bg-muted"
                 )} />
                 <span className={cn(
                   "text-[10px] font-black uppercase tracking-wider transition-colors",
-                  tech2Active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
-                )}>Técnico 2</span>
+                  activeEquipe === 2 ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
+                )}>Equipe 2</span>
               </button>
             </div>
           )}
