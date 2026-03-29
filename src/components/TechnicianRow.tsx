@@ -57,8 +57,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     if (!isEditable || !user || !firestore) return;
 
     slotIds.forEach(time => {
-      // Prevent editing the hardcoded interval slots if desired, 
-      // but usually we just want them marked.
+      // Prevent editing the hardcoded interval slots
       const isInterval = time >= "13:00" && time < "14:00";
       if (isInterval) return;
 
@@ -174,12 +173,12 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
                     isInDragRange && dragAction === 'free' && "bg-muted/40 shadow-none border-dashed ring-2 ring-inset ring-accent/20"
                   )}
                 >
-                  {/* Interval Label logic */}
-                  {isInterval && time === "13:30" && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                      <div className="flex items-center gap-1.5 whitespace-nowrap bg-background/50 px-2 py-0.5 rounded-full border border-border/50 backdrop-blur-sm">
+                  {/* Interval Label logic - centered across 4 slots (13:00 to 14:00) */}
+                  {isInterval && time === "13:00" && (
+                    <div className="absolute inset-y-0 left-0 w-[400%] flex items-center justify-center pointer-events-none z-20">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap bg-background/60 px-3 py-1 rounded-full border border-border/50 backdrop-blur-md shadow-sm scale-90 md:scale-100">
                         <Coffee className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Intervalo</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo</span>
                       </div>
                     </div>
                   )}
