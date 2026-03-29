@@ -41,9 +41,9 @@ export default function Home() {
           isFullscreen ? "p-4 border-none bg-transparent" : "p-6 md:p-10 space-y-8"
         )}>
           {!isFullscreen && (
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight text-foreground uppercase">Agenda de Atendimento</h2>
-              <p className="text-muted-foreground text-sm">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold tracking-tight text-foreground uppercase">Agenda de Atendimento</h2>
+              <p className="text-muted-foreground text-[11px] uppercase tracking-wider opacity-80">
                 Visualize e gerencie a disponibilidade dos técnicos 12x36. Horário de atendimento: 08:00 às 20:00.
               </p>
             </div>
