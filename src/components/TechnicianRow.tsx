@@ -78,12 +78,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, []);
 
   const handleToggleSlots = (slotIds: string[], action: 'occupy' | 'free') => {
-    if (!isEditable || !user || !firestore || activeEquipe === null) return;
+    if (!isEditable || !user || !firestore) return;
 
     slotIds.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
       
-      if (action === 'occupy') {
+      if (action === 'occupy' && activeEquipe !== null) {
         setDocumentNonBlocking(docRef, {
           technicianId: technician.id,
           startTime: time,
@@ -92,9 +92,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           updatedAt: serverTimestamp(),
           equipe: activeEquipe
         }, { merge: true });
-      } else {
-        const existingEquipe = occupiedSlotsMap[time];
-        if (existingEquipe === activeEquipe) {
+      } else if (action === 'free') {
+        // Se nenhuma equipe estiver selecionada, apaga qualquer uma.
+        // Se uma equipe estiver selecionada, apaga apenas se for a mesma equipe (toggle)
+        if (activeEquipe === null || occupiedSlotsMap[time] === activeEquipe) {
           deleteDocumentNonBlocking(docRef);
         }
       }
@@ -115,7 +116,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Erro tratado globalmente via FirebaseErrorListener
+        // Erro tratado globalmente
       }
     }
   };
@@ -123,20 +124,27 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
     if (!isEditable) return;
     
+    const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
+    const existingEquipe = occupiedSlotsMap[time];
+    const isOccupied = !!existingEquipe;
+
     if (activeEquipe === null) {
-      setIsSelectionError(true);
-      setTimeout(() => setIsSelectionError(false), 1600);
-      toast({
-        variant: "destructive",
-        title: "Selecione uma Equipe",
-        description: "É necessário selecionar EQUIPE 1 ou EQUIPE 2 antes de marcar horários.",
-      });
+      if (isOccupied) {
+        setDragStart({ type, index });
+        setDragEnd({ type, index });
+        setDragAction('free');
+      } else {
+        setIsSelectionError(true);
+        setTimeout(() => setIsSelectionError(false), 1600);
+        toast({
+          variant: "destructive",
+          title: "Selecione uma Equipe",
+          description: "Selecione EQUIPE 1 ou EQUIPE 2 para marcar. Clique em um horário ocupado para apagar.",
+        });
+      }
       return;
     }
 
-    const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
-    const existingEquipe = occupiedSlotsMap[time];
-    
     setDragStart({ type, index });
     setDragEnd({ type, index });
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
@@ -178,8 +186,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       <div className={cn(
         "flex h-24 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
         compact && "h-16",
-        (!isEditable || isLoading) && "cursor-not-allowed",
-        isEditable && activeEquipe === null && "cursor-not-allowed opacity-80"
+        (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
           const equipeId = occupiedSlotsMap[time];
@@ -199,7 +206,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               visualOccupied = true;
               visualEquipe = activeEquipe!;
             } else if (dragAction === 'free') {
-              if (equipeId === activeEquipe) {
+              if (activeEquipe === null || equipeId === activeEquipe) {
                 visualOccupied = false;
                 visualEquipe = undefined;
               }
@@ -218,12 +225,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               }}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
-                isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
+                isEditable ? "cursor-pointer" : "cursor-default",
                 isHourStart && !visualOccupied && "border-l-2 border-l-white/20",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
-                isInDragRange && dragAction === 'free' && equipeId === activeEquipe && "bg-muted/40 ring-2 ring-inset ring-accent/20"
+                isInDragRange && dragAction === 'free' && (activeEquipe === null || equipeId === activeEquipe) && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               {visualOccupied ? (
@@ -363,7 +370,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           isSelectionError && "text-primary animate-pulse scale-105"
         )}>
           {isEditable ? (
-            activeEquipe === null ? "SELECIONE UMA EQUIPE PARA EDITAR" : "CLIQUE E ARRASTE PARA MARCAR OU SOBREPOR"
+            activeEquipe === null ? "CLIQUE NOS OCUPADOS PARA APAGAR OU SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA MARCAR OU SOBREPOR"
           ) : (
             "MODO DE VISUALIZAÇÃO"
           )}
