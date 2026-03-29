@@ -176,7 +176,8 @@ export default function TecnicosPage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => handleDeleteTechnician(tech.id, tech.name)}
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-opacity"
+                            title="Remover técnico"
                           >
                             <Trash2 className="h-5 w-5" />
                           </Button>
