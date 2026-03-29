@@ -3,7 +3,7 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy } from "lucide-react";
+import { Info, Lock, Copy, CheckCircle2 } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -61,17 +61,42 @@ export function ScheduleManager() {
             <Lock className="h-5 w-5" />
             <p className="font-semibold">Acesso de Edição Negado</p>
           </div>
-          <div className="text-sm space-y-2 text-foreground/80">
-            <p>Seu usuário está logado, mas ainda não tem permissão para editar. Para liberar o acesso, adicione o seguinte ID na coleção <code className="bg-destructive/20 px-1 rounded">roles_tac_members</code> do Firestore:</p>
-            <div 
-              onClick={copyUid}
-              className="flex items-center justify-between bg-background border border-destructive/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group"
-            >
-              <code className="text-xs font-mono break-all">{user.uid}</code>
-              <Copy className="h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100" />
+          <div className="text-sm space-y-4 text-foreground/80">
+            <p>Siga estes passos no Firebase Console para liberar seu acesso:</p>
+            
+            <div className="grid gap-3 pl-2">
+              <div className="flex gap-2 items-start">
+                <span className="bg-destructive/20 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
+                <p>Crie a coleção: <code className="bg-destructive/20 px-1 rounded font-bold text-destructive">roles_tac_members</code></p>
+              </div>
+              
+              <div className="flex gap-2 items-start">
+                <span className="bg-destructive/20 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
+                <div className="space-y-2 w-full">
+                  <p>No <b>ID do Documento</b>, use seu UID (clique abaixo para copiar):</p>
+                  <div 
+                    onClick={copyUid}
+                    className="flex items-center justify-between bg-background border border-destructive/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group"
+                  >
+                    <code className="text-xs font-mono break-all">{user.uid}</code>
+                    <Copy className="h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 items-start">
+                <span className="bg-destructive/20 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
+                <p>Adicione um campo qualquer (Ex: <code className="bg-destructive/20 px-1 rounded font-bold text-destructive">role</code> = <code className="bg-destructive/20 px-1 rounded font-bold text-destructive">admin</code>) e clique em <b>Salvar</b>.</p>
+              </div>
             </div>
-            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive/70">Clique no código acima para copiar</p>
           </div>
+        </div>
+      )}
+
+      {isTacMember && (
+        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-center gap-3 text-green-500">
+          <CheckCircle2 className="h-5 w-5" />
+          <p className="text-sm font-medium">Você tem permissão total de edição TAC.</p>
         </div>
       )}
 
