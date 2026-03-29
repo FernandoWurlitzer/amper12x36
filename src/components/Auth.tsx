@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useUser, initiateEmailSignIn, initiateEmailSignUp } from "@/firebase";
+import { useAuth, useUser, initiateEmailSignIn } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,21 +12,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { LogIn, LogOut, User as UserIcon } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 
 export function Auth() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuth = () => {
-    if (isSignUp) {
-      initiateEmailSignUp(auth, email, password);
-    } else {
-      initiateEmailSignIn(auth, email, password);
-    }
+    initiateEmailSignIn(auth, email, password);
   };
 
   if (isUserLoading) return <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />;
@@ -55,7 +50,7 @@ export function Auth() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isSignUp ? "Criar Conta TAC" : "Acesso Restrito TAC"}</DialogTitle>
+          <DialogTitle>Acesso Restrito TAC</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
@@ -77,14 +72,7 @@ export function Auth() {
             />
           </div>
           <Button onClick={handleAuth} className="w-full">
-            {isSignUp ? "Cadastrar" : "Entrar"}
-          </Button>
-          <Button 
-            variant="link" 
-            className="text-xs" 
-            onClick={() => setIsSignUp(!isSignUp)}
-          >
-            {isSignUp ? "Já tenho conta? Entrar" : "Novo membro TAC? Cadastrar"}
+            Entrar
           </Button>
         </div>
       </DialogContent>
