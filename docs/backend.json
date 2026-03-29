@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -68,6 +69,14 @@
         "name": {
           "type": "string",
           "description": "The full name of the technician."
+        },
+        "phoneTariff": {
+          "type": "string",
+          "description": "The technician's work phone number (Tarifa)."
+        },
+        "phonePersonal": {
+          "type": "string",
+          "description": "The technician's personal phone number."
         }
       },
       "required": [
