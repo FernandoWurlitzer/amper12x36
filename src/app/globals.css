@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Dark Theme Palette */
+    /* Dark Theme Palette with Amper Orange */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     
@@ -14,7 +14,8 @@
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     
-    --primary: 0 84.2% 60.2%;
+    /* Amper Orange Tone: HSL 24 100% 50% */
+    --primary: 24 100% 50%;
     --primary-foreground: 0 0% 98%;
     
     --secondary: 240 3.7% 15.9%;
@@ -23,7 +24,7 @@
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
     
-    --accent: 0 84.2% 60.2%;
+    --accent: 24 100% 50%;
     --accent-foreground: 0 0% 98%;
     
     --destructive: 0 62.8% 30.6%;
@@ -31,7 +32,7 @@
     
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 0 84.2% 60.2%;
+    --ring: 24 100% 50%;
     
     --radius: 0.75rem;
   }
