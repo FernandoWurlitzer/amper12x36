@@ -82,10 +82,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     slotIds.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
-      const existingEquipe = occupiedSlotsMap[time];
-
+      
       if (action === 'occupy') {
-        // Agora permite sobrescrever qualquer equipe
         setDocumentNonBlocking(docRef, {
           technicianId: technician.id,
           startTime: time,
@@ -95,7 +93,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           equipe: activeEquipe
         }, { merge: true });
       } else {
-        // Só permite desmarcar se o slot pertencer à equipe ativa
+        const existingEquipe = occupiedSlotsMap[time];
         if (existingEquipe === activeEquipe) {
           deleteDocumentNonBlocking(docRef);
         }
@@ -117,7 +115,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Erro tratado globalmente
+        // Erro tratado globalmente via FirebaseErrorListener
       }
     }
   };
@@ -235,10 +233,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               ) : (
                 isHourStart && (
                   <div className={cn(
-                    "text-[11px] font-black leading-none select-none pointer-events-none transition-colors",
+                    "text-[9px] font-black leading-none select-none pointer-events-none transition-colors",
                     "text-foreground/40"
                   )}>
-                    {time.split(':')[0]}
+                    {time}
                   </div>
                 )
               )}
@@ -334,9 +332,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('morning', slots.morning)}
 
         <div className="flex justify-center py-2 relative">
-          <div className="flex items-center gap-2 bg-muted/40 px-6 py-1.5 rounded-full border border-border/50 shadow-sm">
-            <Coffee className="h-3.5 w-3.5 text-muted-foreground/50" />
-            <span className="text-[11px] font-black text-muted-foreground/80 uppercase tracking-[0.2em] leading-none">
+          <div className="flex items-center gap-2 bg-muted/20 px-4 py-1 rounded-full border border-border/30">
+            <Coffee className="h-3 w-3 text-muted-foreground/40" />
+            <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] leading-none">
               Intervalo
             </span>
           </div>
