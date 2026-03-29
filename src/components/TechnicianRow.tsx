@@ -16,8 +16,8 @@ type Props = {
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [dragStart, setDragStart] = { type: 'morning' | 'afternoon', index: number } | null>(null);
-  const [dragEnd, setDragEnd] = { type: 'morning' | 'afternoon', index: number } | null>(null);
+  const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
+  const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
 
   const initials = useMemo(() => {
