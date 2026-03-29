@@ -16,8 +16,8 @@ type Props = {
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
-  const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
+  const [dragStart, setDragStart] = { type: 'morning' | 'afternoon', index: number } | null>(null);
+  const [dragEnd, setDragEnd] = { type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
 
   const initials = useMemo(() => {
@@ -45,13 +45,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
+    // Adjusted to 30 minute intervals, removing :15 and :45
     for (let h = 8; h < 13; h++) {
-      for (let m = 0; m < 60; m += 15) {
+      for (let m = 0; m < 60; m += 30) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
     for (let h = 14; h < 20; h++) {
-      for (let m = 0; m < 60; m += 15) {
+      for (let m = 0; m < 60; m += 30) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
@@ -163,7 +164,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-6 space-y-4 shadow-sm hover:shadow-md transition-all duration-300", 
+      "bg-card border rounded-2xl p-6 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", 
       isLoading && "opacity-50 animate-pulse",
       compact && "p-4 space-y-2"
     )}>
@@ -187,13 +188,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className={cn("space-y-1.5", compact && "space-y-1")}>
+      <div className={cn("space-y-1", compact && "space-y-0.5")}>
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-0">
+        <div className="flex justify-center py-0.5">
           <div className={cn(
-            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
-            compact && "py-0.5 scale-75"
+            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-0.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
+            compact && "scale-75"
           )}>
             <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
