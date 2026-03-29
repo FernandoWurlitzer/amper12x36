@@ -53,7 +53,7 @@ export default function Home() {
       </main>
 
       {!isFullscreen && (
-        <footer className="p-8 text-center text-sm text-muted-foreground uppercase tracking-widest opacity-50">
+        <footer className="p-8 text-center text-[10px] text-muted-foreground uppercase tracking-[0.3em] opacity-50">
           AMPERNET TELECOM ® - Fernando Wurlitzer
         </footer>
       )}
