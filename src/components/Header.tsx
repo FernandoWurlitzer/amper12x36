@@ -14,7 +14,7 @@ export function Header() {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <header className="w-full border-b bg-background/90 backdrop-blur-lg sticky top-0 z-50">
+    <header className="w-full border-b bg-background/90 backdrop-blur-lg">
       <div className="container mx-auto px-4 md:px-8 flex h-20 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-4 group cursor-pointer">
