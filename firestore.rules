@@ -19,8 +19,8 @@
  * 1. Denormalization for Authorization: To ensure performant and atomic security checks, 
  *    the status of a "TAC Member" is mirrored in a flat top-level collection. This allows 
  *    the rules to use `exists()` calls rather than complex joins.
- * 2. Public Visibility: Technician schedules are readable by any authenticated user to 
- *    facilitate viewing availability, but modification is strictly gated.
+ * 2. Public Visibility: Technician schedules are readable by ANYONE (even unauthenticated) 
+ *    to facilitate viewing availability, but modification is strictly gated.
  * 3. Relational Integrity: On creation of schedule blocks, the rules enforce that the 
  *    `markedByUserId` matches the authenticated user's ID for auditing purposes.
  * 4. Structural Segregation: Administrative role mapping is kept separate from standard 
@@ -57,10 +57,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for individual user profiles. Users can only manage their own data.
-     * @path /users/{userId}
-     * @allow (get) request.auth.uid == "user_123" accessing /users/user_123
-     * @deny (list) Anonymous user attempting to list all users.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
@@ -69,38 +65,25 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for role definitions. These are reference documents readable by all users.
-     * @path /roles/{roleId}
-     * @allow (list) Any signed-in user viewing available system roles.
-     * @deny (update) Any user attempting to modify role names or descriptions.
-     * @principle Provides public read access to reference data while preventing unauthorized modification.
+     * @description Rules for role definitions. Readable by anyone.
      */
     match /roles/{roleId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if false;
     }
 
     /**
      * @description Rules for technician profiles. Publicly readable, manageable by TAC Members.
-     * @path /technicians/{technicianId}
-     * @allow (get) Any user viewing a technician's name.
-     * @allow (update) A user in the roles_tac_members collection modifying a technician.
-     * @deny (create) A standard user (not in roles_tac_members) creating a new technician.
-     * @principle Restricted management access based on membership in a specific administrative group.
      */
     match /technicians/{technicianId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isTacMember();
 
       /**
-       * @description Rules for specific time blocks. TAC Members manage availability.
-       * @path /technicians/{technicianId}/scheduledBlocks/{scheduledBlockId}
-       * @allow (create) A TAC Member marking a block, setting markedByUserId to their own UID.
-       * @deny (delete) A user who is not a TAC Member attempting to remove a schedule block.
-       * @principle Validates relational integrity (auditing field) and enforces role-based write access.
+       * @description Rules for specific time blocks. Readable by anyone, managed by TAC Members.
        */
       match /scheduledBlocks/{scheduledBlockId} {
-        allow get, list: if isSignedIn();
+        allow get, list: if true;
         allow create: if isTacMember() && request.resource.data.markedByUserId == request.auth.uid;
         allow update, delete: if isTacMember() && resource != null;
       }
@@ -108,10 +91,6 @@ service cloud.firestore {
 
     /**
      * @description Rules for the TAC Member lookup collection used for DBAC.
-     * @path /roles_tac_members/{userId}
-     * @allow (get) A user checking if they themselves are a TAC Member.
-     * @deny (list) Any user attempting to download the full list of TAC Members.
-     * @principle Secures the authorization source-of-truth from public listing while allowing individual verification.
      */
     match /roles_tac_members/{userId} {
       allow get: if isOwner(userId) || isTacMember();
