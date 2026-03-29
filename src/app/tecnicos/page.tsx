@@ -25,9 +25,8 @@ import {
   UserPlus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
-// Definindo o tipo para o Técnico para garantir consistência
+// Definindo o tipo para o Técnico
 interface Technician {
   id: string;
   name: string;
@@ -85,7 +84,7 @@ export default function TecnicosPage() {
     if (!id || !firestore) return;
 
     const confirmed = window.confirm(
-      `Tem certeza que deseja remover ${name}? Isso não apagará os blocos de horários vinculados a este ID, mas ele não aparecerá mais na agenda.`
+      `ATENÇÃO: Deseja realmente remover o técnico "${name}"? Esta ação é irreversível.`
     );
 
     if (confirmed) {
@@ -94,7 +93,7 @@ export default function TecnicosPage() {
 
       toast({
         title: "Técnico Removido",
-        description: `${name} foi removido do sistema.`,
+        description: `${name} foi removido com sucesso.`,
       });
     }
   };
@@ -117,10 +116,10 @@ export default function TecnicosPage() {
             <div className="space-y-1">
               <h2 className="text-3xl font-bold tracking-tight text-foreground uppercase flex items-center gap-3">
                 <Users className="h-8 w-8 text-primary" />
-                Gestão de Técnicos
+                Gestão de Equipe
               </h2>
               <p className="text-muted-foreground text-sm uppercase tracking-widest opacity-70">
-                Administre os profissionais da equipe 12x36
+                Cadastro e manutenção de técnicos
               </p>
             </div>
           </div>
@@ -130,9 +129,9 @@ export default function TecnicosPage() {
               <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
                 <ShieldAlert className="h-12 w-12 text-destructive opacity-50" />
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-destructive">Acesso Negado</h3>
+                  <h3 className="text-xl font-bold text-destructive">Acesso Administrativo Necessário</h3>
                   <p className="text-muted-foreground max-w-sm">
-                    Apenas membros do TAC com permissão administrativa podem gerenciar técnicos.
+                    Apenas membros autorizados do TAC podem gerenciar a lista de técnicos.
                   </p>
                 </div>
               </CardContent>
@@ -144,7 +143,7 @@ export default function TecnicosPage() {
                 <CardHeader className="bg-primary/5 border-b border-primary/10">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                     <UserPlus className="h-4 w-4" />
-                    Novo Profissional
+                    Adicionar Novo Técnico
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -158,7 +157,7 @@ export default function TecnicosPage() {
                     />
                     <Button onClick={handleAddTechnician} className="h-12 px-8 gap-2 font-bold uppercase tracking-wider shadow-lg shadow-primary/20">
                       <Plus className="h-5 w-5" />
-                      Adicionar
+                      Cadastrar
                     </Button>
                   </div>
                 </CardContent>
@@ -173,11 +172,11 @@ export default function TecnicosPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   {isTechLoading ? (
-                    <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando técnicos...</div>
+                    <div className="p-8 text-center text-muted-foreground animate-pulse">Sincronizando equipe...</div>
                   ) : technicians && technicians.length > 0 ? (
                     <div className="divide-y divide-border/30">
                       {technicians.map((tech) => (
-                        <div key={tech.id} className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors group">
+                        <div key={tech.id} className="flex items-center justify-between p-5 hover:bg-primary/5 transition-colors group">
                           <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
                               {tech.name?.[0]?.toUpperCase() || 'T'}
@@ -185,17 +184,13 @@ export default function TecnicosPage() {
                             <span className="font-semibold text-foreground text-lg">{tech.name}</span>
                           </div>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleDeleteTechnician(tech.id, tech.name);
-                            }}
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title="Remover técnico"
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handleDeleteTechnician(tech.id, tech.name)}
+                            className="h-9 px-4 gap-2 opacity-80 hover:opacity-100 transition-all font-bold uppercase text-[10px] tracking-widest shadow-md"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Excluir
                           </Button>
                         </div>
                       ))}
@@ -203,7 +198,7 @@ export default function TecnicosPage() {
                   ) : (
                     <div className="p-12 text-center text-muted-foreground space-y-4">
                       <Users className="h-12 w-12 mx-auto opacity-20" />
-                      <p className="uppercase tracking-widest text-xs font-bold">Nenhum técnico cadastrado</p>
+                      <p className="uppercase tracking-widest text-xs font-bold italic">A base de técnicos está vazia</p>
                     </div>
                   )}
                 </CardContent>
@@ -214,7 +209,7 @@ export default function TecnicosPage() {
       </main>
 
       <footer className="p-8 text-center text-sm text-muted-foreground uppercase tracking-widest opacity-50">
-        &copy; {new Date().getFullYear()} AMPERNET 12x36. Todos os direitos reservados.
+        &copy; {new Date().getFullYear()} AMPERNET 12x36.
       </footer>
     </div>
   );
