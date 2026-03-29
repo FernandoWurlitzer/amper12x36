@@ -33,6 +33,25 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
   const [isSelectionError, setIsSelectionError] = useState(false);
+  const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
+
+  // Sincronização com o horário da internet (sistema local)
+  useEffect(() => {
+    const updateShift = () => {
+      const hours = new Date().getHours();
+      // Das 00:00 até 13:59 -> Manhã (Turno 1)
+      // Das 14:00 até 20:59 -> Tarde (Turno 2)
+      if (hours < 14) {
+        setVisibleShift('morning');
+      } else {
+        setVisibleShift('afternoon');
+      }
+    };
+
+    updateShift();
+    const interval = setInterval(updateShift, 60000); // Checa a cada minuto
+    return () => clearInterval(interval);
+  }, []);
 
   const initials = useMemo(() => {
     return technician.name
@@ -176,9 +195,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-0.5 select-none">
+    <div className="space-y-0.5 select-none animate-in fade-in slide-in-from-top-1 duration-500">
       <div className="flex items-center gap-1.5 text-[7px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-2 w-2" /> : <Sunset className="h-2 w-2" />}
+        {type === 'morning' ? <Sunrise className="h-2 w-2 text-orange-400" /> : <Sunset className="h-2 w-2 text-blue-400" />}
         {type === 'morning' ? 'Turno 1 (08:00 - 14:00)' : 'Turno 2 (14:00 - 20:00)'}
       </div>
       <div className={cn(
@@ -266,13 +285,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             {initials}
           </div>
           <div>
-            <h3 className={cn("font-bold text-sm text-foreground tracking-tight")}>{technician.name}</h3>
-            {!compact && (
-              <p className="text-[8px] text-muted-foreground flex items-center gap-1 opacity-70">
-                <Clock className="h-2 w-2" />
-                Sincronizado via Nuvem
-              </p>
-            )}
+            <h3 className={cn("font-bold text-sm text-foreground tracking-tight uppercase")}>{technician.name}</h3>
           </div>
         </div>
         
@@ -330,18 +343,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       </div>
 
       <div className="space-y-0.5">
-        {renderSlotsBar('morning', slots.morning)}
+        {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-0.5 relative">
-          <div className="flex items-center gap-1.5 bg-muted/20 px-3 py-0.5 rounded-full border border-border/20">
-            <Coffee className="h-2.5 w-2.5 text-muted-foreground/30" />
-            <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.1em] leading-none">
-              Intervalo
-            </span>
+        {/* Intervalo discreto entre turnos apenas se ambos pudessem ser visíveis */}
+        {!visibleShift && (
+          <div className="flex justify-center py-0.5 relative">
+            <div className="flex items-center gap-1.5 bg-muted/20 px-3 py-0.5 rounded-full border border-border/20">
+              <Coffee className="h-2.5 w-2.5 text-muted-foreground/30" />
+              <span className="text-[8px] font-black text-muted-foreground/50 uppercase tracking-[0.1em] leading-none">
+                Intervalo
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {renderSlotsBar('afternoon', slots.afternoon)}
+        {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
       <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/20 mt-0.5">
@@ -366,7 +382,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           {isEditable ? (
             activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR OU CLIQUE PARA APAGAR" : "CLIQUE E ARRASTE"
           ) : (
-            "VISUALIZAÇÃO"
+            "MODO VISUALIZAÇÃO"
           )}
         </p>
       </div>
