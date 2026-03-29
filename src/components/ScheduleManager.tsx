@@ -11,7 +11,7 @@ export type Technician = {
 };
 
 const TECHNICIANS: Technician[] = [
-  { id: "tech-1", name: "João Silva" },
+  { id: "tech-1", name: "Francisco Beltrão" },
   { id: "tech-2", name: "Maria Santos" },
   { id: "tech-3", name: "Ricardo Lima" },
 ];
@@ -80,13 +80,15 @@ export function ScheduleManager() {
 
       <Card className="bg-muted/50 border-none shadow-none">
         <CardContent className="p-4 flex items-start gap-3 text-sm text-muted-foreground">
-          <Info className="h-5 w-5 text-primary mt-0.5" />
+          <div className="bg-primary/10 p-2 rounded-full">
+            <Info className="h-5 w-5 text-primary" />
+          </div>
           <div className="space-y-1">
             <p className="font-medium text-foreground">Informações de Uso</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>Clique e arraste com o mouse para marcar ou desmarcar vários blocos de uma vez.</li>
               <li>Cada bloco representa 15 minutos de atendimento.</li>
-              <li>As alterações são salvas automaticamente.</li>
+              <li>As alterações são salvas automaticamente no seu navegador.</li>
             </ul>
           </div>
         </CardContent>
