@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -45,14 +46,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    // Adjusted to 30 minute intervals, removing :15 and :45
     for (let h = 8; h < 13; h++) {
-      for (let m = 0; m < 60; m += 30) {
+      for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
     for (let h = 14; h < 20; h++) {
-      for (let m = 0; m < 60; m += 30) {
+      for (let m = 0; m < 60; m += 15) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
