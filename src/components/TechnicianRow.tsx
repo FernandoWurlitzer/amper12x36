@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -114,14 +113,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-4 w-4" /> : <Sunset className="h-4 w-4" />}
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+        {type === 'morning' ? <Sunrise className="h-3 w-3" /> : <Sunset className="h-3 w-3" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-14 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
-        compact && "h-10",
+        "flex h-12 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        compact && "h-8",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -148,8 +147,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className={cn(
-                "text-[10px] md:text-[12px] font-bold leading-none select-none pointer-events-none transition-colors",
-                isHourStart ? "text-foreground font-black scale-110" : "opacity-0",
+                "text-[8px] md:text-[10px] font-bold leading-none select-none pointer-events-none transition-colors",
+                isHourStart ? "text-foreground font-black" : "opacity-0",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
                 {isHourStart ? time : ""}
@@ -164,22 +163,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-6 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", 
+      "bg-card border rounded-2xl p-4 space-y-2 shadow-sm hover:shadow-md transition-all duration-300", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-4 space-y-2"
+      compact && "p-3 space-y-1.5"
     )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={cn(
-            "flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/20",
-            compact && "h-10 w-10 text-base"
+            "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-base select-none shadow-sm shadow-primary/20",
+            compact && "h-9 w-9 text-sm"
           )}>
             {initials}
           </div>
           <div>
-            <h3 className={cn("font-bold text-xl text-foreground", compact && "text-lg")}>{technician.name}</h3>
+            <h3 className={cn("font-bold text-lg text-foreground", compact && "text-base")}>{technician.name}</h3>
             {!compact && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Sincronizado via Nuvem
               </p>
@@ -188,23 +187,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className={cn("space-y-1", compact && "space-y-0.5")}>
+      <div className={cn("space-y-0.5", compact && "space-y-0.25")}>
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-0.5">
+        <div className="flex justify-center py-0.25">
           <div className={cn(
-            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-0.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
-            compact && "scale-75"
+            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-0.25 rounded-lg backdrop-blur-sm scale-75",
           )}>
-            <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
+            <Coffee className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
           </div>
         </div>
 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50">
+      <div className="flex justify-between items-center pt-1 text-[9px] text-muted-foreground border-t border-border/50">
         <div className="flex gap-4">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-sm bg-accent" />
@@ -216,7 +214,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           </div>
         </div>
         {!compact && (
-          <p className="hidden md:block text-white font-bold text-[13px] uppercase tracking-wider opacity-90">
+          <p className="hidden md:block text-white font-bold text-[11px] uppercase tracking-wider opacity-90">
             CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
           </p>
         )}
