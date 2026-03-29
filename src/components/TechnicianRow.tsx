@@ -108,11 +108,11 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
-        {type === 'morning' ? <Sunrise className="h-3 w-3" /> : <Sunset className="h-3 w-3" />}
+        {type === 'morning' ? <Sunrise className="h-4 w-4" /> : <Sunset className="h-4 w-4" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-12 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        "flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -133,13 +133,13 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
               className={cn(
                 "group flex-1 relative transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-primary/10",
+                isHourStart && "border-l-2 border-l-primary/30",
                 visualOccupied ? "bg-accent shadow-inner" : (isEditable ? "bg-transparent hover:bg-secondary/20" : "bg-transparent"),
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               {isHourStart && (
-                <div className="absolute top-0 left-0 text-[7px] font-bold text-muted-foreground/60 pl-0.5 pt-0.5 pointer-events-none">
+                <div className="absolute top-1 left-1 text-[11px] font-black text-foreground pointer-events-none drop-shadow-sm select-none">
                   {time}
                 </div>
               )}
