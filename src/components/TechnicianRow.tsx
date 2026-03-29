@@ -135,14 +135,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-0.5 select-none">
+    <div className="space-y-1 select-none">
       <div className="flex items-center gap-2 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1">
         {type === 'morning' ? <Sunrise className="h-2.5 w-2.5" /> : <Sunset className="h-2.5 w-2.5" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-8 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
-        compact && "h-6",
+        "flex h-12 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
+        compact && "h-10",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -174,7 +174,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className={cn(
-                "text-[7px] font-bold leading-none select-none pointer-events-none transition-colors",
+                "text-[9px] font-bold leading-none select-none pointer-events-none transition-colors",
                 isHourStart ? "text-foreground font-black opacity-100" : "opacity-0",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
@@ -190,23 +190,23 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-3 space-y-1 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
+      "bg-card border rounded-2xl p-4 space-y-2 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-2 space-y-0"
+      compact && "p-3 space-y-1"
     )}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
           <div className={cn(
-            "flex h-8 w-8 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-xs select-none shadow-sm shadow-primary/20",
-            compact && "h-7 w-7"
+            "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-sm select-none shadow-sm shadow-primary/20",
+            compact && "h-8 w-8 text-xs"
           )}>
             {initials}
           </div>
           <div>
-            <h3 className={cn("font-bold text-sm text-foreground", compact && "text-[13px]")}>{technician.name}</h3>
+            <h3 className={cn("font-bold text-base text-foreground tracking-tight", compact && "text-sm")}>{technician.name}</h3>
             {!compact && (
-              <p className="text-[8px] text-muted-foreground flex items-center gap-1">
-                <Clock className="h-2 w-2" />
+              <p className="text-[9px] text-muted-foreground flex items-center gap-1 opacity-70">
+                <Clock className="h-2.5 w-2.5" />
                 Sincronizado via Nuvem
               </p>
             )}
@@ -217,21 +217,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             variant="ghost" 
             size="sm" 
             onClick={handleClearAll}
-            className="h-7 text-[9px] gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-bold"
+            className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-3.5 w-3.5" />
             Limpar Agenda
           </Button>
         )}
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-2">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-1">
-          <div className="flex items-center gap-2.5 bg-muted/40 border border-border/50 px-4 py-1 rounded-full">
-            <Coffee className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
+        <div className="flex justify-center py-2">
+          <div className="flex items-center gap-3 bg-muted/40 border border-border/50 px-6 py-1.5 rounded-full shadow-sm">
+            <Coffee className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em] leading-none">
               Intervalo (13:00 - 14:00)
             </span>
           </div>
@@ -240,18 +240,18 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-2 text-[8px] text-muted-foreground border-t border-border/50 mt-1">
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-sm bg-accent" />
-            <span>Ocupado</span>
+      <div className="flex justify-between items-center pt-3 text-[9px] text-muted-foreground border-t border-border/50 mt-2">
+        <div className="flex gap-5">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-accent shadow-sm" />
+            <span className="font-medium">Ocupado</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-sm bg-available" />
-            <span>Livre</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-available shadow-sm" />
+            <span className="font-medium">Livre</span>
           </div>
         </div>
-        <p className="text-white font-bold text-[9px] uppercase tracking-wider opacity-100">
+        <p className="text-white font-black text-[10px] uppercase tracking-[0.15em] opacity-100 drop-shadow-sm">
           CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
         </p>
       </div>
