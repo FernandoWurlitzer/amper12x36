@@ -10,14 +10,14 @@ export default function Home() {
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight text-primary">Agenda de Atendimento</h2>
             <p className="text-muted-foreground">
-              Visualize e gerencie a disponibilidade dos técnicos. Horário de funcionamento: 08:00 às 20:00.
+              Visualize e gerencie a disponibilidade dos técnicos. Horário de atendimento: 08:00 às 20:00.
             </p>
           </div>
           <ScheduleManager />
         </div>
       </main>
       <footer className="p-8 text-center text-sm text-muted-foreground">
-        &copy; {new Date().getFullYear()} Agendamento Tech. Todos os direitos reservados.
+        &copy; {new Date().getFullYear()} Amper 12x36. Todos os direitos reservados.
       </footer>
     </div>
   );

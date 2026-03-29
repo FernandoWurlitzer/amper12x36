@@ -9,7 +9,7 @@ export function Header() {
           <div className="bg-primary p-2 rounded-xl">
             <CalendarDays className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-primary">Agendamento Tech</h1>
+          <h1 className="text-xl font-bold tracking-tight text-primary">Amper 12x36</h1>
         </div>
         <Auth />
       </div>
