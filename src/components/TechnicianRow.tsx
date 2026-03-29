@@ -2,11 +2,13 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Clock, Coffee, Sunrise, Sunset } from "lucide-react";
+import { Clock, Coffee, Sunrise, Sunset, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, writeBatch, getDocs } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   technician: Technician;
@@ -17,6 +19,7 @@ type Props = {
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
@@ -78,6 +81,25 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     });
   };
 
+  const handleClearAll = async () => {
+    if (!isEditable || !firestore || !scheduledBlocksRef) return;
+    
+    if (confirm(`Deseja limpar todos os horários de ${technician.name}?`)) {
+      try {
+        const snapshot = await getDocs(scheduledBlocksRef);
+        snapshot.docs.forEach(d => {
+          deleteDocumentNonBlocking(d.ref);
+        });
+        toast({
+          title: "Agenda Limpa",
+          description: `Todos os horários de ${technician.name} foram liberados.`,
+        });
+      } catch (e) {
+        console.error("Erro ao limpar agenda:", e);
+      }
+    }
+  };
+
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
     if (!isEditable) return;
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
@@ -114,14 +136,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 select-none">
       <div className="flex items-center gap-2 text-[8px] font-bold text-muted-foreground uppercase tracking-wider px-1">
         {type === 'morning' ? <Sunrise className="h-2.5 w-2.5" /> : <Sunset className="h-2.5 w-2.5" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-9 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
-        compact && "h-7",
+        "flex h-8 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        compact && "h-6",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -134,7 +156,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
           const visualOccupied = isInDragRange ? (dragAction === 'occupy') : isOccupied;
           
-          // Calculate distance from drag start for directional animation effect
           const dragDistance = (dragStart !== null && isInDragRange) ? Math.abs(index - dragStart.index) : 0;
 
           return (
@@ -143,19 +164,19 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={() => handleMouseDown(type, index)}
               onMouseEnter={() => handleMouseEnter(type, index)}
               style={{ 
-                transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms'
+                transitionDelay: isInDragRange ? `${dragDistance * 5}ms` : '0ms'
               }}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-300 border-r border-border last:border-r-0 hover:z-10",
+                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-white/60",
+                isHourStart && "border-l-2 border-l-white",
                 visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               <div className={cn(
-                "text-[7px] md:text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
-                isHourStart ? "text-foreground font-black" : "opacity-0",
+                "text-[7px] font-bold leading-none select-none pointer-events-none transition-colors",
+                isHourStart ? "text-foreground font-black opacity-100" : "opacity-0",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
                 {isHourStart ? time : ""}
@@ -170,11 +191,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-3 space-y-1 shadow-sm hover:shadow-md transition-all duration-300", 
+      "bg-card border rounded-2xl p-3 space-y-1 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-2 space-y-0.5"
+      compact && "p-2 space-y-0"
     )}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex h-8 w-8 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-xs select-none shadow-sm shadow-primary/20",
@@ -192,24 +213,33 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             )}
           </div>
         </div>
+        {isEditable && !compact && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleClearAll}
+            className="h-7 text-[9px] gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-bold"
+          >
+            <Trash2 className="h-3 w-3" />
+            Limpar Agenda
+          </Button>
+        )}
       </div>
 
-      <div className={cn("space-y-0.25", compact && "space-y-0")}>
+      <div className="space-y-0.5">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-0.25">
-          <div className={cn(
-            "flex items-center gap-2 bg-muted/40 border border-border/50 px-2 py-0.25 rounded-lg backdrop-blur-sm scale-75",
-          )}>
-            <Coffee className="h-2 w-2 text-muted-foreground" />
-            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
+        <div className="flex justify-center py-0.5">
+          <div className="flex items-center gap-2 bg-muted/30 border border-border/40 px-3 py-0.5 rounded-full scale-75">
+            <Coffee className="h-2.5 w-2.5 text-muted-foreground" />
+            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">Intervalo (13:00 - 14:00)</span>
           </div>
         </div>
 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/50">
+      <div className="flex justify-between items-center pt-2 text-[8px] text-muted-foreground border-t border-border/50 mt-1">
         <div className="flex gap-4">
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-sm bg-accent" />
@@ -220,11 +250,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span>Livre</span>
           </div>
         </div>
-        {!compact && (
-          <p className="hidden md:block text-white font-bold text-[9px] uppercase tracking-wider opacity-90">
-            CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
-          </p>
-        )}
+        <p className="text-white font-bold text-[9px] uppercase tracking-wider opacity-100">
+          CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
+        </p>
       </div>
     </div>
   );
