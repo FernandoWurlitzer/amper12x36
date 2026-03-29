@@ -141,7 +141,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               className={cn(
                 "group flex-1 relative transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-primary/50",
+                isHourStart && "border-l-2 border-l-white/40",
                 visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
