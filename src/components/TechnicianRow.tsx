@@ -148,7 +148,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className={cn(
-                "text-[7px] md:text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
+                "text-[9px] md:text-[10px] font-bold leading-none select-none pointer-events-none transition-colors",
                 isHourStart ? "text-foreground font-black scale-110" : "text-foreground/40",
                 visualOccupied ? "text-primary-foreground" : ""
               )}>
