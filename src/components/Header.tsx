@@ -24,9 +24,9 @@ export function Header() {
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-xl md:text-2xl tracking-tight text-foreground leading-none flex items-start">
-              <span className="font-semibold uppercase">AMPERNET</span>
-              <span className="text-[10px] md:text-xs font-medium lowercase ml-0.5 mt-0.5 opacity-80">12x36</span>
+            <h1 className="text-xl md:text-2xl tracking-tighter text-foreground leading-none flex items-start font-michroma lowercase">
+              <span className="font-normal">ampernet</span>
+              <span className="text-[10px] md:text-xs font-medium ml-0.5 mt-0.5 opacity-80 font-body align-top">12x36</span>
             </h1>
           </div>
         </div>
