@@ -24,7 +24,9 @@ export function Header() {
             />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl font-black tracking-tighter text-primary leading-none uppercase">AMPERNET 12x36</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground leading-none uppercase">
+              AMPERNET <span className="font-light opacity-70">12x36</span>
+            </h1>
           </div>
         </div>
         <Auth />
