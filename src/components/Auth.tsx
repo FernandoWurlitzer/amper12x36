@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth, useUser, initiateEmailSignIn } from "@/firebase";
+import { useState, useEffect } from "react";
+import { useAuth, useUser, initiateEmailSignIn, errorEmitter } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,27 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function Auth() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("tac@ampernet.com.br");
   const [password, setPassword] = useState("tac@2026");
+
+  useEffect(() => {
+    const handleAuthError = (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Falha na Autenticação",
+        description: "Usuário ou senha inválidos. Por favor, verifique suas credenciais.",
+      });
+    };
+
+    errorEmitter.on('auth-error', handleAuthError);
+    return () => errorEmitter.off('auth-error', handleAuthError);
+  }, [toast]);
 
   const handleAuth = () => {
     initiateEmailSignIn(auth, email, password);
