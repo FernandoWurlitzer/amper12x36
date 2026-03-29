@@ -139,21 +139,20 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={() => handleMouseDown(type, index)}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
+                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-white/40",
+                isHourStart && "border-l-2 border-l-white",
                 visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
-              {isHourStart && (
-                <div className={cn(
-                  "absolute top-1 left-1 text-[11px] font-black text-foreground pointer-events-none drop-shadow-sm select-none",
-                  compact && "text-[9px] top-0.5"
-                )}>
-                  {time}
-                </div>
-              )}
+              <div className={cn(
+                "text-[7px] md:text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
+                isHourStart ? "text-foreground font-black scale-110" : "text-foreground/40",
+                visualOccupied ? "text-primary-foreground" : ""
+              )}>
+                {time}
+              </div>
               <span className="sr-only">{time}</span>
             </div>
           );
@@ -217,7 +216,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
         {!compact && (
           <p className="hidden md:block text-white font-bold text-[13px] uppercase tracking-wider opacity-90">
-            Clique e arraste para marcar múltiplos horários
+            CLIQUE E ARRASTE PARA MARCAR MÚLTIPLOS HORÁRIOS
           </p>
         )}
       </div>
