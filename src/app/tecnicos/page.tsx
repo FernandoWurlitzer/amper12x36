@@ -164,7 +164,7 @@ export default function TecnicosPage() {
                       <Input 
                         id="personal"
                         placeholder="(00) 00000-0000" 
-                        value={techPhonePessoal}
+                        value={techPhonePersonal}
                         onChange={(e) => setTechPhonePersonal(e.target.value)}
                         className="bg-background/50 border-border/50 focus:border-primary/50"
                       />
