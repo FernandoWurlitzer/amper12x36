@@ -85,19 +85,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const existingEquipe = occupiedSlotsMap[time];
 
       if (action === 'occupy') {
-        // Permite se o slot estiver livre OU se estiver sobrepondo a equipe oposta
-        const canOccupy = !existingEquipe || (existingEquipe !== activeEquipe);
-        
-        if (canOccupy) {
-          setDocumentNonBlocking(docRef, {
-            technicianId: technician.id,
-            startTime: time,
-            endTime: time,
-            markedByUserId: user.uid,
-            updatedAt: serverTimestamp(),
-            equipe: activeEquipe
-          }, { merge: true });
-        }
+        // Agora permite sobrescrever qualquer equipe
+        setDocumentNonBlocking(docRef, {
+          technicianId: technician.id,
+          startTime: time,
+          endTime: time,
+          markedByUserId: user.uid,
+          updatedAt: serverTimestamp(),
+          equipe: activeEquipe
+        }, { merge: true });
       } else {
         // Só permite desmarcar se o slot pertencer à equipe ativa
         if (existingEquipe === activeEquipe) {
@@ -143,8 +139,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
     const existingEquipe = occupiedSlotsMap[time];
     
-    // Agora permitimos clicar em qualquer lugar se for para ocupar (sobrepor)
-    // Se clicar em algo que já é da equipe ativa, a ação padrão é 'free'
     setDragStart({ type, index });
     setDragEnd({ type, index });
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
@@ -204,11 +198,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
           if (isInDragRange && dragAction) {
             if (dragAction === 'occupy') {
-              // Permite visual se estiver livre OU se estiver sobrepondo a outra equipe
-              if (!isOccupied || (equipeId !== activeEquipe)) {
-                visualOccupied = true;
-                visualEquipe = activeEquipe!;
-              }
+              visualOccupied = true;
+              visualEquipe = activeEquipe!;
             } else if (dragAction === 'free') {
               if (equipeId === activeEquipe) {
                 visualOccupied = false;
@@ -230,21 +221,26 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
                 isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-white/20",
+                isHourStart && !visualOccupied && "border-l-2 border-l-white/20",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && equipeId === activeEquipe && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
-              {isHourStart && (
-                <div className={cn(
-                  "text-[11px] font-black leading-none select-none pointer-events-none transition-colors",
-                  "text-foreground/40",
-                  visualOccupied ? "text-white drop-shadow-sm" : ""
-                )}>
-                  {time.split(':')[0]}
-                </div>
+              {visualOccupied ? (
+                <span className="text-[10px] font-black text-white drop-shadow-sm pointer-events-none select-none">
+                  E{visualEquipe}
+                </span>
+              ) : (
+                isHourStart && (
+                  <div className={cn(
+                    "text-[11px] font-black leading-none select-none pointer-events-none transition-colors",
+                    "text-foreground/40"
+                  )}>
+                    {time.split(':')[0]}
+                  </div>
+                )
               )}
               <span className="sr-only">{time}</span>
             </div>
