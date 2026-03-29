@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "tech-avatar",
+      "description": "Abstract technician avatar placeholder",
+      "imageUrl": "https://picsum.photos/seed/tech/200/200",
+      "imageHint": "technician avatar"
+    }
+  ]
 }
