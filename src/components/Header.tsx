@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -6,7 +7,7 @@ import { Auth } from "./Auth";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange, Users } from "lucide-react";
 
 export function Header() {
   const logo = PlaceHolderImages.find(img => img.id === "amper-logo");
@@ -37,12 +38,21 @@ export function Header() {
           
           <div className="hidden md:block h-8 w-px bg-border/50 mx-2" />
           
-          <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
-            <Link href="/">
-              <CalendarRange className="h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
+              <Link href="/">
+                <CalendarRange className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+
+            <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
+              <Link href="/tecnicos">
+                <Users className="h-4 w-4" />
+                Técnicos
+              </Link>
+            </Button>
+          </div>
         </div>
         <Auth />
       </div>
