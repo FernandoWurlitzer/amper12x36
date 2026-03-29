@@ -27,6 +27,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+// Definindo o tipo para o Técnico para garantir consistência
+interface Technician {
+  id: string;
+  name: string;
+  createdAt?: string;
+}
+
 export default function TecnicosPage() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
@@ -48,7 +55,7 @@ export default function TecnicosPage() {
     return collection(firestore, 'technicians');
   }, [firestore]);
 
-  const { data: technicians, isLoading: isTechLoading } = useCollection(techniciansRef);
+  const { data: technicians, isLoading: isTechLoading } = useCollection<Technician>(techniciansRef);
 
   const handleAddTechnician = () => {
     if (!newTechName.trim()) {
@@ -75,16 +82,21 @@ export default function TecnicosPage() {
   };
 
   const handleDeleteTechnician = (id: string, name: string) => {
-    if (!confirm(`Tem certeza que deseja remover ${name}? Isso não apagará os blocos de horários vinculados a este ID, mas ele não aparecerá mais na agenda.`)) return;
-    
-    if (!firestore) return;
-    const techDocRef = doc(firestore, 'technicians', id);
-    deleteDocumentNonBlocking(techDocRef);
+    if (!id || !firestore) return;
 
-    toast({
-      title: "Técnico Removido",
-      description: `${name} foi removido do sistema.`,
-    });
+    const confirmed = window.confirm(
+      `Tem certeza que deseja remover ${name}? Isso não apagará os blocos de horários vinculados a este ID, mas ele não aparecerá mais na agenda.`
+    );
+
+    if (confirmed) {
+      const techDocRef = doc(firestore, 'technicians', id);
+      deleteDocumentNonBlocking(techDocRef);
+
+      toast({
+        title: "Técnico Removido",
+        description: `${name} foi removido do sistema.`,
+      });
+    }
   };
 
   if (isAuthLoading || isTacLoading) {
@@ -168,15 +180,19 @@ export default function TecnicosPage() {
                         <div key={tech.id} className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors group">
                           <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
-                              {tech.name[0].toUpperCase()}
+                              {tech.name?.[0]?.toUpperCase() || 'T'}
                             </div>
                             <span className="font-semibold text-foreground text-lg">{tech.name}</span>
                           </div>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDeleteTechnician(tech.id, tech.name)}
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-opacity"
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteTechnician(tech.id, tech.name);
+                            }}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             title="Remover técnico"
                           >
                             <Trash2 className="h-5 w-5" />
