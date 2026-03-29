@@ -85,8 +85,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const existingEquipe = occupiedSlotsMap[time];
 
       if (action === 'occupy') {
-        // Permite se o slot estiver livre OU se a Equipe 2 estiver sobrepondo a Equipe 1
-        const canOccupy = !existingEquipe || (activeEquipe === 2 && existingEquipe === 1);
+        // Permite se o slot estiver livre OU se estiver sobrepondo a equipe oposta
+        const canOccupy = !existingEquipe || (existingEquipe !== activeEquipe);
         
         if (canOccupy) {
           setDocumentNonBlocking(docRef, {
@@ -143,14 +143,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
     const existingEquipe = occupiedSlotsMap[time];
     
-    // Se o slot pertence à outra equipe...
-    if (existingEquipe && existingEquipe !== activeEquipe) {
-      // ...só permitimos se for a Equipe 2 tentando sobrepor a Equipe 1
-      if (!(activeEquipe === 2 && existingEquipe === 1)) {
-        return;
-      }
-    }
-
+    // Agora permitimos clicar em qualquer lugar se for para ocupar (sobrepor)
+    // Se clicar em algo que já é da equipe ativa, a ação padrão é 'free'
     setDragStart({ type, index });
     setDragEnd({ type, index });
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
@@ -210,8 +204,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
           if (isInDragRange && dragAction) {
             if (dragAction === 'occupy') {
-              // Permite visual se estiver livre OU se Equipe 2 sobrepõe Equipe 1
-              if (!isOccupied || (activeEquipe === 2 && equipeId === 1)) {
+              // Permite visual se estiver livre OU se estiver sobrepondo a outra equipe
+              if (!isOccupied || (equipeId !== activeEquipe)) {
                 visualOccupied = true;
                 visualEquipe = activeEquipe!;
               }
@@ -235,7 +229,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               }}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
-                isEditable && activeEquipe !== null && (!isOccupied || (activeEquipe === 2 && equipeId === 1) || equipeId === activeEquipe) ? "cursor-pointer" : "cursor-default",
+                isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
                 isHourStart && "border-l-2 border-l-white/20",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
@@ -375,7 +369,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           isSelectionError && "text-primary animate-pulse scale-105"
         )}>
           {isEditable ? (
-            activeEquipe === null ? "SELECIONE UMA EQUIPE PARA EDITAR" : "CLIQUE E ARRASTE PARA MARCAR HORÁRIOS"
+            activeEquipe === null ? "SELECIONE UMA EQUIPE PARA EDITAR" : "CLIQUE E ARRASTE PARA MARCAR OU SOBREPOR"
           ) : (
             "MODO DE VISUALIZAÇÃO"
           )}
