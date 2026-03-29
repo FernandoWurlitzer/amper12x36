@@ -3,9 +3,9 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy, CheckCircle2, Share2 } from "lucide-react";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { Info, Lock, Copy, CheckCircle2, Share2, Users, Loader2 } from "lucide-react";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, collection } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,12 +14,6 @@ export type Technician = {
   id: string;
   name: string;
 };
-
-const TECHNICIANS: Technician[] = [
-  { id: "tech-1", name: "Francisco Beltrão" },
-  { id: "tech-2", name: "Ponta Grossa" },
-  { id: "tech-3", name: "Pato Branco" },
-];
 
 interface ScheduleManagerProps {
   isFullscreen?: boolean;
@@ -30,7 +24,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Check if current user is a TAC Member
+  // Verificar se o usuário atual é um Membro TAC
   const tacMemberRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_tac_members', user.uid);
@@ -38,6 +32,14 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
 
   const { data: tacMemberDoc, isLoading: isTacLoading } = useDoc(tacMemberRef);
   const isTacMember = !!tacMemberDoc;
+
+  // Buscar técnicos do Firestore em tempo real
+  const techniciansRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'technicians');
+  }, [firestore]);
+
+  const { data: technicians, isLoading: isTechLoading } = useCollection<Technician>(techniciansRef);
 
   const copyUid = () => {
     if (user?.uid) {
@@ -67,12 +69,11 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
     });
   };
 
-  if (isAuthLoading || isTacLoading) {
+  if (isAuthLoading || isTacLoading || isTechLoading) {
     return (
-      <div className="grid grid-cols-1 gap-6 animate-pulse">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-48 bg-muted rounded-xl" />
-        ))}
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Sincronizando Agenda...</p>
       </div>
     );
   }
@@ -130,19 +131,31 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
         </div>
       )}
 
-      <div className={cn(
-        "grid grid-cols-1 gap-8",
-        isFullscreen && "gap-4"
-      )}>
-        {TECHNICIANS.map((tech) => (
-          <TechnicianRow
-            key={tech.id}
-            technician={tech}
-            isEditable={isTacMember}
-            compact={isFullscreen}
-          />
-        ))}
-      </div>
+      {technicians && technicians.length > 0 ? (
+        <div className={cn(
+          "grid grid-cols-1 gap-8",
+          isFullscreen && "gap-4"
+        )}>
+          {technicians.map((tech) => (
+            <TechnicianRow
+              key={tech.id}
+              technician={tech}
+              isEditable={isTacMember}
+              compact={isFullscreen}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="py-20 text-center border-2 border-dashed rounded-2xl border-border/50 space-y-4">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
+          <div className="space-y-2">
+            <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Nenhum técnico disponível</p>
+            <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto italic">
+              Vá para a página de Técnicos e adicione novos profissionais à equipe.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!isFullscreen && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
