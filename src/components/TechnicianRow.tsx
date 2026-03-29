@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { User, Clock, Coffee, Sunrise, Sunset } from "lucide-react";
+import { Clock, Coffee, Sunrise, Sunset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -19,7 +19,15 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
 
-  // Firestore sync for slots
+  const initials = useMemo(() => {
+    return technician.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [technician.name]);
+
   const scheduledBlocksRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
@@ -36,13 +44,11 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     const morning = [];
     const afternoon = [];
     
-    // Manhã: 08:00 às 13:00 (último slot começa 12:45)
     for (let h = 8; h < 13; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
-    // Tarde: 14:00 às 20:00 (último slot começa 19:45)
     for (let h = 14; h < 20; h++) {
       for (let m = 0; m < 60; m += 15) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -96,7 +102,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, isEditable, user, firestore]);
+  }, [dragStart, dragEnd, dragAction, slots, isEditable, user, firestore, occupiedSlots, technician.id]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -155,8 +161,8 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     <div className={cn("bg-card border rounded-2xl p-6 space-y-6 shadow-sm hover:shadow-md transition-shadow", isLoading && "opacity-50 animate-pulse")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2.5 rounded-xl text-primary">
-            <User className="h-6 w-6" />
+          <div className="flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/20 rounded-xl text-primary font-bold text-lg select-none">
+            {initials}
           </div>
           <div>
             <h3 className="font-bold text-xl text-foreground">{technician.name}</h3>
@@ -169,18 +175,15 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
       </div>
 
       <div className="space-y-4">
-        {/* Barra Superior (Manhã) */}
         {renderSlotsBar('morning', slots.morning)}
 
-        {/* Caixa de Intervalo */}
         <div className="flex justify-center py-1">
-          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90">
             <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
           </div>
         </div>
 
-        {/* Barra Inferior (Tarde) */}
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
@@ -195,7 +198,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
             <span>Livre</span>
           </div>
         </div>
-        <p className="hidden md:block">Clique e arraste para marcar múltiplos horários</p>
+        <p className="hidden md:block text-primary/70 font-medium">Clique e arraste para marcar múltiplos horários</p>
       </div>
     </div>
   );
