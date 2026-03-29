@@ -77,11 +77,21 @@
         "phonePersonal": {
           "type": "string",
           "description": "The technician's personal phone number."
+        },
+        "workRegime": {
+          "type": "string",
+          "description": "The technician's work schedule type (e.g., 'Comercial', '12x36').",
+          "enum": ["Comercial", "12x36"]
+        },
+        "isOnDuty": {
+          "type": "boolean",
+          "description": "Indicates if the technician is currently on call (plantão)."
         }
       },
       "required": [
         "id",
-        "name"
+        "name",
+        "workRegime"
       ]
     },
     "ScheduledBlock": {

@@ -15,13 +15,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Plus, 
   Users, 
   ShieldAlert, 
   Loader2,
   UserPlus,
-  Phone
+  Phone,
+  Briefcase,
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +43,8 @@ export default function TecnicosPage() {
   const [techName, setTechName] = useState("");
   const [techPhoneTariff, setTechPhoneTariff] = useState("");
   const [techPhonePersonal, setTechPhonePersonal] = useState("");
+  const [workRegime, setWorkRegime] = useState("12x36");
+  const [isOnDuty, setIsOnDuty] = useState(false);
 
   const tacMemberRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -63,12 +75,16 @@ export default function TecnicosPage() {
       name: techName.trim(),
       phoneTariff: techPhoneTariff.trim(),
       phonePersonal: techPhonePersonal.trim(),
+      workRegime: workRegime,
+      isOnDuty: isOnDuty,
       createdAt: new Date().toISOString()
     });
 
     setTechName("");
     setTechPhoneTariff("");
     setTechPhonePersonal("");
+    setWorkRegime("12x36");
+    setIsOnDuty(false);
     
     toast({
       title: "Técnico Cadastrado",
@@ -123,7 +139,7 @@ export default function TecnicosPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nome Completo</Label>
                     <Input 
@@ -161,6 +177,40 @@ export default function TecnicosPage() {
                         value={techPhonePersonal}
                         onChange={(e) => setTechPhonePersonal(e.target.value)}
                         className="bg-background/50 border-border/50 focus:border-primary/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-border/30">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                        <Briefcase className="h-3 w-3" />
+                        Regime de Trabalho
+                      </Label>
+                      <Select value={workRegime} onValueChange={setWorkRegime}>
+                        <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
+                          <SelectValue placeholder="Selecione o regime" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Comercial">Horário Comercial</SelectItem>
+                          <SelectItem value="12x36">Regime 12x36</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/10">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="duty" className="text-[10px] font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                          <AlertCircle className="h-3 w-3 text-primary" />
+                          Está de Plantão?
+                        </Label>
+                        <p className="text-[9px] text-muted-foreground uppercase">Indica disponibilidade extra</p>
+                      </div>
+                      <Switch 
+                        id="duty" 
+                        checked={isOnDuty} 
+                        onCheckedChange={setIsOnDuty}
+                        className="data-[state=checked]:bg-primary"
                       />
                     </div>
                   </div>
