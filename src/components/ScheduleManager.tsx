@@ -135,7 +135,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
                   <li>Selecione <b>E1</b> ou <b>E2</b> antes de marcar.</li>
                   <li>Clique e arraste para ocupar vários blocos de 15 min.</li>
-                  <li>Clique em um bloco já ocupado para <b>liberar</b> o horário.</li>
+                  <li>Clique em um bloco sem selecionar nenhuma equipe para <b>desmarcar</b> um horário.</li>
                   <li>Use o botão <b>Limpar</b> para zerar toda a agenda da cidade.</li>
                 </ul>
               </div>
