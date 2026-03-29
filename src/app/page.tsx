@@ -15,7 +15,6 @@ export default function Home() {
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    // Adicional para detectar F11 nativo que alguns navegadores tratam sem disparar o evento de API
     const handleResize = () => {
       setIsFullscreen(window.innerHeight === window.screen.height);
     };
@@ -56,7 +55,7 @@ export default function Home() {
 
       {!isFullscreen && (
         <footer className="p-8 text-center text-sm text-muted-foreground uppercase tracking-widest opacity-50">
-          &copy; {new Date().getFullYear()} AMPERNET 12x36. Todos os direitos reservados.
+          AMPERNET TELECOM - Fernando Wurlitzer
         </footer>
       )}
     </div>

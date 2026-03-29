@@ -230,7 +230,7 @@ export default function TecnicosPage() {
       </main>
 
       <footer className="p-8 text-center text-[10px] text-muted-foreground uppercase tracking-[0.3em] opacity-50">
-        &copy; {new Date().getFullYear()} AMPERNET 12x36.
+        AMPERNET TELECOM - Fernando Wurlitzer
       </footer>
     </div>
   );
