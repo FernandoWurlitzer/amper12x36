@@ -15,6 +15,13 @@ type Props = {
   compact?: boolean;
 };
 
+interface ScheduledBlockData {
+  id: string;
+  equipe?: number;
+  technicianId: string;
+  markedByUserId: string;
+}
+
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -40,11 +47,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
   }, [firestore, technician.id]);
 
-  const { data: blocksData, isLoading } = useCollection(scheduledBlocksRef);
+  const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
   
-  const occupiedSlots = useMemo(() => {
-    if (!blocksData) return [];
-    return blocksData.map(doc => doc.id);
+  // Mapeia os slots ocupados para o número da equipe correspondente
+  const occupiedSlotsMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (blocksData) {
+      blocksData.forEach(block => {
+        map[block.id] = block.equipe || 1; // Default para equipe 1 se não houver campo
+      });
+    }
+    return map;
   }, [blocksData]);
 
   const slots = useMemo(() => {
@@ -65,21 +78,29 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, []);
 
   const handleToggleSlots = (slotIds: string[], action: 'occupy' | 'free') => {
-    if (!isEditable || !user || !firestore) return;
+    if (!isEditable || !user || !firestore || activeEquipe === null) return;
 
     slotIds.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
+      const existingEquipe = occupiedSlotsMap[time];
+
       if (action === 'occupy') {
-        setDocumentNonBlocking(docRef, {
-          technicianId: technician.id,
-          startTime: time,
-          endTime: time,
-          markedByUserId: user.uid,
-          updatedAt: serverTimestamp(),
-          equipe: activeEquipe
-        }, { merge: true });
+        // Não permite marcar sobre um horário já ocupado por QUALQUER equipe
+        if (!existingEquipe) {
+          setDocumentNonBlocking(docRef, {
+            technicianId: technician.id,
+            startTime: time,
+            endTime: time,
+            markedByUserId: user.uid,
+            updatedAt: serverTimestamp(),
+            equipe: activeEquipe
+          }, { merge: true });
+        }
       } else {
-        deleteDocumentNonBlocking(docRef);
+        // Permite desmarcar apenas se o slot pertencer à equipe ativa
+        if (existingEquipe === activeEquipe) {
+          deleteDocumentNonBlocking(docRef);
+        }
       }
     });
   };
@@ -119,9 +140,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
 
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
+    const existingEquipe = occupiedSlotsMap[time];
+    
     setDragStart({ type, index });
     setDragEnd({ type, index });
-    setDragAction(occupiedSlots.includes(time) ? 'free' : 'occupy');
+    
+    // Se o slot estiver ocupado pela equipe ativa, a ação é liberar. Caso contrário, ocupar.
+    setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
   };
 
   const handleMouseEnter = (type: 'morning' | 'afternoon', index: number) => {
@@ -142,7 +167,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, isEditable, user, firestore, occupiedSlots, technician.id, activeEquipe]);
+  }, [dragStart, dragEnd, dragAction, slots, activeEquipe, occupiedSlotsMap]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -164,14 +189,35 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         isEditable && activeEquipe === null && "cursor-not-allowed opacity-80"
       )}>
         {timeSlots.map((time, index) => {
-          const isOccupied = occupiedSlots.includes(time);
+          const equipeId = occupiedSlotsMap[time];
+          const isOccupied = !!equipeId;
           const isHourStart = time.endsWith(":00");
+          
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
             index >= Math.min(dragStart.index, dragEnd.index) && 
             index <= Math.max(dragStart.index, dragEnd.index);
 
-          const visualOccupied = isInDragRange ? (dragAction === 'occupy') : isOccupied;
+          // Lógica visual para o arraste
+          let visualEquipe = equipeId;
+          let visualOccupied = isOccupied;
+
+          if (isInDragRange) {
+            if (dragAction === 'occupy') {
+              // Só mostra como ocupado no arraste se o slot estiver livre originalmente
+              if (!isOccupied) {
+                visualOccupied = true;
+                visualEquipe = activeEquipe!;
+              }
+            } else if (dragAction === 'free') {
+              // Só mostra como livre no arraste se o slot pertencer à equipe ativa
+              if (equipeId === activeEquipe) {
+                visualOccupied = false;
+                visualEquipe = undefined;
+              }
+            }
+          }
+
           const dragDistance = (dragStart !== null && isInDragRange) ? Math.abs(index - dragStart.index) : 0;
 
           return (
@@ -187,9 +233,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isEditable && activeEquipe !== null ? "cursor-pointer" : "cursor-default",
                 isHourStart && "border-l-2 border-l-white/20",
                 visualOccupied 
-                  ? (activeEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
+                  ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
                   : "bg-available/20 hover:bg-available/40",
-                isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
+                isInDragRange && dragAction === 'free' && equipeId === activeEquipe && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               {isHourStart && (
@@ -305,8 +351,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/30 mt-1.5">
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
-            <div className={cn("w-2 h-2 rounded-sm shadow-sm", activeEquipe === 2 ? "bg-green-500" : "bg-accent")} />
-            <span className="font-medium">Ocupado</span>
+            <div className="w-2 h-2 rounded-sm bg-accent shadow-sm" />
+            <span className="font-medium">Equipe 1</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-green-500 shadow-sm" />
+            <span className="font-medium">Equipe 2</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm bg-available shadow-sm" />
