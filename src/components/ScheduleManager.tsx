@@ -1,10 +1,12 @@
+
 "use client";
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock } from "lucide-react";
+import { Info, Lock, Copy } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export type Technician = {
   id: string;
@@ -20,6 +22,7 @@ const TECHNICIANS: Technician[] = [
 export function ScheduleManager() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   // Check if current user is a TAC Member
   const tacMemberRef = useMemoFirebase(() => {
@@ -29,6 +32,16 @@ export function ScheduleManager() {
 
   const { data: tacMemberDoc, isLoading: isTacLoading } = useDoc(tacMemberRef);
   const isTacMember = !!tacMemberDoc;
+
+  const copyUid = () => {
+    if (user?.uid) {
+      navigator.clipboard.writeText(user.uid);
+      toast({
+        title: "UID Copiado!",
+        description: "Agora cole este ID na coleção 'roles_tac_members' no Console do Firebase.",
+      });
+    }
+  };
 
   if (isAuthLoading || isTacLoading) {
     return (
@@ -42,11 +55,31 @@ export function ScheduleManager() {
 
   return (
     <div className="space-y-8">
-      {!isTacMember && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3 text-destructive">
+      {user && !isTacMember && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6 space-y-4 text-destructive">
+          <div className="flex items-center gap-3">
+            <Lock className="h-5 w-5" />
+            <p className="font-semibold">Acesso de Edição Negado</p>
+          </div>
+          <div className="text-sm space-y-2 text-foreground/80">
+            <p>Seu usuário está logado, mas ainda não tem permissão para editar. Para liberar o acesso, adicione o seguinte ID na coleção <code className="bg-destructive/20 px-1 rounded">roles_tac_members</code> do Firestore:</p>
+            <div 
+              onClick={copyUid}
+              className="flex items-center justify-between bg-background border border-destructive/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group"
+            >
+              <code className="text-xs font-mono break-all">{user.uid}</code>
+              <Copy className="h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100" />
+            </div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-destructive/70">Clique no código acima para copiar</p>
+          </div>
+        </div>
+      )}
+
+      {!user && (
+        <div className="bg-muted border rounded-xl p-4 flex items-center gap-3 text-muted-foreground">
           <Lock className="h-5 w-5" />
           <p className="text-sm font-medium">
-            Modo de visualização. Apenas membros do TAC podem alterar a agenda.
+            Modo de visualização. Faça login como TAC para gerenciar a agenda.
           </p>
         </div>
       )}
