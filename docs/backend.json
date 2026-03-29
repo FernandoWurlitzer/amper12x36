@@ -1,0 +1,214 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents an application user with access to the system. Authentication data (passwords) are handled by an external system. Only specific users (TAC members) will have permission to mark technician availability.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The unique username used for login."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to the Role entity, defining the user's permissions within the application. (Relationship: Role 1:N User)"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "roleId"
+      ]
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines the different types of users or roles within the application, such as 'TAC Member' (who can edit schedules) and 'Viewer' (who can only view schedules).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the role (e.g., 'TAC Member', 'Viewer')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed explanation of what this role represents and its associated privileges."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Technician": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Technician",
+      "type": "object",
+      "description": "Represents a technical staff member whose schedule and availability are managed within the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Technician entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the technician."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "ScheduledBlock": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ScheduledBlock",
+      "type": "object",
+      "description": "Represents a specific block of time when a technician is marked as unavailable for appointments or duties. These blocks can be 15 minutes to 1 hour in duration.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ScheduledBlock entity."
+        },
+        "technicianId": {
+          "type": "string",
+          "description": "Reference to the Technician who is unavailable during this time block. (Relationship: Technician 1:N ScheduledBlock)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The exact date and time when the technician's unavailability begins.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The exact date and time when the technician's unavailability ends.",
+          "format": "date-time"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or a brief reason for the technician's unavailability (e.g., 'Meeting', 'Lunch break')."
+        },
+        "markedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who marked this time block as unavailable, useful for auditing purposes. (Relationship: User 1:N ScheduledBlock)"
+        }
+      },
+      "required": [
+        "id",
+        "technicianId",
+        "startTime",
+        "endTime"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles. Access is typically restricted to the user themselves for read operations.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Stores definitions of user roles (e.g., 'TAC Member', 'Viewer'). This is reference data, typically publicly readable.",
+          "params": [
+            {
+              "name": "roleId",
+              "description": "The unique identifier of the role."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/technicians/{technicianId}",
+        "definition": {
+          "entityName": "Technician",
+          "schema": {
+            "$ref": "#/backend/entities/Technician"
+          },
+          "description": "Stores profiles of technical staff. This data is publicly readable to display technician names in the schedule.",
+          "params": [
+            {
+              "name": "technicianId",
+              "description": "The unique identifier of the technician."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/technicians/{technicianId}/scheduledBlocks/{scheduledBlockId}",
+        "definition": {
+          "entityName": "ScheduledBlock",
+          "schema": {
+            "$ref": "#/backend/entities/ScheduledBlock"
+          },
+          "description": "Stores specific time blocks when a technician is unavailable. This collection is publicly readable for all users. Write operations (create, update, delete) are restricted to authenticated 'TAC Members'. Each document includes `technicianId` (denormalized from the path) and `markedByUserId` for auditing and enforcing authorization independence.",
+          "params": [
+            {
+              "name": "technicianId",
+              "description": "The unique identifier of the technician whose schedule block is being managed."
+            },
+            {
+              "name": "scheduledBlockId",
+              "description": "The unique identifier of the scheduled unavailability block."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_tac_members/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A dedicated collection for identifying users who are 'TAC Members'. The existence of a document at `/roles_tac_members/{userId}` grants the user associated with `userId` permission to mark technician availability. This is a crucial element for Authorization Independence (DBAC). Documents here are typically minimal, serving purely for role-based access control checks.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who holds the 'TAC Member' role."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and debuggable, adhering strictly to the core design principles and strategy mandates. The central requirement for only 'TAC members' to mark technician availability is addressed through a robust Authorization Independence mechanism.\n\n**Authorization Independence (CRITICAL) & DBAC:**\nTo prevent hierarchical authorization dependencies (`get()` calls in security rules) and enable atomic operations, a dedicated top-level collection, `/roles_tac_members/{userId}`, is introduced. The existence of a document in this collection at `request.auth.uid`'s path directly signifies that the authenticated user is a 'TAC Member'. This denormalization means that security rules for modifying `ScheduledBlock`s can perform a direct `exists()` check, eliminating the need to fetch the user's full profile or role definition from other collections. This ensures that authorization checks are fast, atomic, and independent of other data changes, making them robust and easier to debug.\n\n**Structural Segregation & QAPs (Rules are not Filters):**\n\n1.  **`/technicians/{technicianId}` and `/technicians/{technicianId}/scheduledBlocks/{scheduledBlockId}`:** These collections are segregated to hold data with different write access patterns but similar read access. Technician profiles (`/technicians`) and their scheduled unavailability blocks (`/technicians/{technicianId}/scheduledBlocks`) are intended for public viewing (read by any authenticated user). This homogeneous read posture simplifies security rules to `allow read: if request.auth != null;`. Listing all scheduled blocks for a specific technician is efficiently achieved by querying the subcollection `/technicians/{technicianId}/scheduledBlocks`, directly supporting Queryable Access Patterns (QAPs) without requiring filters in the rules.\n2.  **`/roles_tac_members/{userId}`:** This collection has a distinct security posture where read access is primarily for the security rules engine (via `exists()`) and write access is restricted to administrative operations (e.g., Cloud Functions or a dedicated admin interface). This segregation ensures that the critical authorization mechanism is isolated and tightly controlled.\n\n**Access Modeling & Data Clarity:**\n\n*   **User-Owned Data:** User profiles are stored in `/users/{userId}`, adhering to the path-based ownership pattern for private data (`request.auth.uid == userId` for reads).\n*   **Hierarchical Data:** `ScheduledBlock` entities are nested under `Technician` entities (`/technicians/{technicianId}/scheduledBlocks/{scheduledBlockId}`). This clearly defines the 1:N relationship between a technician and their schedule blocks and supports efficient queries for a single technician's agenda.\n*   **Denormalization in ScheduledBlock:** Each `ScheduledBlock` document includes `technicianId` (matching the parent path segment) and `markedByUserId`. The `markedByUserId` field is crucial for auditing and for reinforcing the write rule (ensuring the 'TAC Member' user is marking themselves as the creator). This internal data consistency further enhances rule clarity and data integrity.\n\nBy following these principles, the Firestore structure provides a clear separation of concerns, ensures authorization is independent and robust, and supports efficient data access and querying while maintaining stringent security."
+  }
+}

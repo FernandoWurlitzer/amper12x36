@@ -1,0 +1,122 @@
+/**
+ * Firestore Security Rules
+ * 
+ * Core Philosophy:
+ * This ruleset implements a role-based access control system specifically designed for a 
+ * technician scheduling application. It prioritizes "Authorization Independence" by using 
+ * a dedicated lookup collection (`roles_tac_members`) to identify privileged users 
+ * (TAC Members) who have the authority to manage technician schedules.
+ * 
+ * Data Structure:
+ * - /users/{userId}: Private user profiles.
+ * - /roles/{roleId}: Publicly readable reference data for system roles.
+ * - /technicians/{technicianId}: Publicly readable technician profiles.
+ * - /technicians/{technicianId}/scheduledBlocks/{blockId}: Publicly readable availability 
+ *   blocks, with write access restricted to TAC Members.
+ * - /roles_tac_members/{userId}: A restricted lookup collection for DBAC (Database-Based Access Control).
+ * 
+ * Key Security Decisions:
+ * 1. Denormalization for Authorization: To ensure performant and atomic security checks, 
+ *    the status of a "TAC Member" is mirrored in a flat top-level collection. This allows 
+ *    the rules to use `exists()` calls rather than complex joins.
+ * 2. Public Visibility: Technician schedules are readable by any authenticated user to 
+ *    facilitate viewing availability, but modification is strictly gated.
+ * 3. Relational Integrity: On creation of schedule blocks, the rules enforce that the 
+ *    `markedByUserId` matches the authenticated user's ID for auditing purposes.
+ * 4. Structural Segregation: Administrative role mapping is kept separate from standard 
+ *    user profiles to prevent accidental privilege escalation.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the authenticated user matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the user is a TAC Member using the DBAC lookup collection. */
+    function isTacMember() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_tac_members/$(request.auth.uid));
+    }
+
+    /** @description Combines ownership check with document existence for write operations. */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for individual user profiles. Users can only manage their own data.
+     * @path /users/{userId}
+     * @allow (get) request.auth.uid == "user_123" accessing /users/user_123
+     * @deny (list) Anonymous user attempting to list all users.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for role definitions. These are reference documents readable by all users.
+     * @path /roles/{roleId}
+     * @allow (list) Any signed-in user viewing available system roles.
+     * @deny (update) Any user attempting to modify role names or descriptions.
+     * @principle Provides public read access to reference data while preventing unauthorized modification.
+     */
+    match /roles/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Rules for technician profiles. Publicly readable, manageable by TAC Members.
+     * @path /technicians/{technicianId}
+     * @allow (get) Any user viewing a technician's name.
+     * @allow (update) A user in the roles_tac_members collection modifying a technician.
+     * @deny (create) A standard user (not in roles_tac_members) creating a new technician.
+     * @principle Restricted management access based on membership in a specific administrative group.
+     */
+    match /technicians/{technicianId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isTacMember();
+
+      /**
+       * @description Rules for specific time blocks. TAC Members manage availability.
+       * @path /technicians/{technicianId}/scheduledBlocks/{scheduledBlockId}
+       * @allow (create) A TAC Member marking a block, setting markedByUserId to their own UID.
+       * @deny (delete) A user who is not a TAC Member attempting to remove a schedule block.
+       * @principle Validates relational integrity (auditing field) and enforces role-based write access.
+       */
+      match /scheduledBlocks/{scheduledBlockId} {
+        allow get, list: if isSignedIn();
+        allow create: if isTacMember() && request.resource.data.markedByUserId == request.auth.uid;
+        allow update, delete: if isTacMember() && resource != null;
+      }
+    }
+
+    /**
+     * @description Rules for the TAC Member lookup collection used for DBAC.
+     * @path /roles_tac_members/{userId}
+     * @allow (get) A user checking if they themselves are a TAC Member.
+     * @deny (list) Any user attempting to download the full list of TAC Members.
+     * @principle Secures the authorization source-of-truth from public listing while allowing individual verification.
+     */
+    match /roles_tac_members/{userId} {
+      allow get: if isOwner(userId) || isTacMember();
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+  }
+}
