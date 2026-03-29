@@ -113,7 +113,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-2">
+    <div className="space-y-1">
       <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
         {type === 'morning' ? <Sunrise className="h-4 w-4" /> : <Sunset className="h-4 w-4" />}
         {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'Tarde (14:00 - 20:00)'}
@@ -163,9 +163,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-2xl p-6 space-y-6 shadow-sm hover:shadow-md transition-all duration-300", 
+      "bg-card border rounded-2xl p-6 space-y-4 shadow-sm hover:shadow-md transition-all duration-300", 
       isLoading && "opacity-50 animate-pulse",
-      compact && "p-4 space-y-4"
+      compact && "p-4 space-y-2"
     )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -187,12 +187,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className={cn("space-y-4", compact && "space-y-2")}>
+      <div className={cn("space-y-1.5", compact && "space-y-1")}>
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className={cn("flex justify-center py-1", compact && "py-0")}>
+        <div className="flex justify-center py-0">
           <div className={cn(
-            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
+            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
             compact && "py-0.5 scale-75"
           )}>
             <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
@@ -203,7 +203,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-3 text-[9px] text-muted-foreground border-t border-border/50">
+      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50">
         <div className="flex gap-4">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-sm bg-accent" />
