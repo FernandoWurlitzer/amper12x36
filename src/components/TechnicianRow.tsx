@@ -22,6 +22,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
+  
+  // Local state for technician active dots
+  const [tech1Active, setTech1Active] = useState(false);
+  const [tech2Active, setTech2Active] = useState(false);
 
   const initials = useMemo(() => {
     return technician.name
@@ -48,13 +52,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    // Turno Manhã: 08:00 às 14:00 (6 horas para alinhar com a tarde)
+    // Aligned 6h turns
     for (let h = 8; h < 14; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
-    // Turno Tarde: 14:00 às 20:00 (6 horas)
     for (let h = 14; h < 20; h++) {
       for (let m = 0; m < 60; m += 15) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -143,8 +146,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {type === 'morning' ? 'Turno 1 (08:00 - 14:00)' : 'Turno 2 (14:00 - 20:00)'}
       </div>
       <div className={cn(
-        "flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
-        compact && "h-12",
+        "flex h-20 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5 shadow-inner",
+        compact && "h-14",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -176,8 +179,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             >
               {isHourStart && (
                 <div className={cn(
-                  "text-[10px] font-bold leading-none select-none pointer-events-none transition-colors",
-                  "text-foreground/80 font-black",
+                  "text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
+                  "text-foreground/60 font-black",
                   visualOccupied ? "text-primary-foreground" : ""
                 )}>
                   {time}
@@ -197,7 +200,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       isLoading && "opacity-50 animate-pulse",
       compact && "p-3 space-y-0.5"
     )}>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex h-10 w-10 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-sm select-none shadow-sm shadow-primary/20",
@@ -215,26 +218,61 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             )}
           </div>
         </div>
-        {isEditable && !compact && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleClearAll}
-            className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Limpar Agenda
-          </Button>
-        )}
+        
+        <div className="flex items-center gap-6">
+          {isEditable && (
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setTech1Active(!tech1Active)}
+                className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
+              >
+                <div className={cn(
+                  "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
+                  tech1Active ? "bg-accent shadow-[0_0_10px_hsl(var(--accent))]" : "bg-muted"
+                )} />
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-wider transition-colors",
+                  tech1Active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
+                )}>Técnico 1</span>
+              </button>
+
+              <button 
+                onClick={() => setTech2Active(!tech2Active)}
+                className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
+              >
+                <div className={cn(
+                  "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
+                  tech2Active ? "bg-green-500 shadow-[0_0_10px_#22c55e]" : "bg-muted"
+                )} />
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-wider transition-colors",
+                  tech2Active ? "text-foreground" : "text-muted-foreground group-hover:text-foreground/70"
+                )}>Técnico 2</span>
+              </button>
+            </div>
+          )}
+
+          {isEditable && !compact && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleClearAll}
+              className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Limpar Agenda
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-1">
-          <div className="flex items-center gap-2 bg-muted/30 px-4 py-0.5 rounded-full border border-border/40">
-            <Coffee className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
+        <div className="flex justify-center py-2">
+          <div className="flex items-center gap-2 bg-muted/30 px-6 py-1 rounded-full border border-border/40">
+            <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
               Intervalo (13:00 - 14:00)
             </span>
           </div>
@@ -243,7 +281,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50 mt-1">
+      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50 mt-2">
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm bg-accent shadow-sm" />
