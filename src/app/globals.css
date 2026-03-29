@@ -33,6 +33,11 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 0 100% 50%;
+
+    /* Available Color: Opposite of Red (Cyan) */
+    /* HSL 180 (Cyan) with low lightness for dark background */
+    --available: 180 100% 12%;
+    --available-foreground: 180 100% 50%;
     
     --radius: 0.75rem;
   }

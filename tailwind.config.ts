@@ -18,6 +18,10 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        available: {
+          DEFAULT: 'hsl(var(--available))',
+          foreground: 'hsl(var(--available-foreground))',
+        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

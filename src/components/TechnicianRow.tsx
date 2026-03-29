@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -143,7 +142,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 "group flex-1 relative transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
                 isHourStart && "border-l-2 border-l-primary/50",
-                visualOccupied ? "bg-accent shadow-inner" : (isEditable ? "bg-transparent hover:bg-secondary/20" : "bg-transparent"),
+                visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
@@ -172,7 +171,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={cn(
-            "flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/40 rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/10",
+            "flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/20",
             compact && "h-10 w-10 text-base"
           )}>
             {initials}
@@ -212,12 +211,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span>Ocupado</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-sm border border-border" />
+            <div className="w-2 h-2 rounded-sm bg-available" />
             <span>Livre</span>
           </div>
         </div>
         {!compact && (
-          <p className="hidden md:block text-white font-bold text-[11px] uppercase tracking-wider opacity-90">
+          <p className="hidden md:block text-white font-bold text-[13px] uppercase tracking-wider opacity-90">
             Clique e arraste para marcar múltiplos horários
           </p>
         )}
