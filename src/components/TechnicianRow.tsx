@@ -139,7 +139,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
               className={cn(
                 "group flex-1 relative transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
-                isHourStart && "border-l-2 border-l-primary/30",
+                isHourStart && "border-l-2 border-l-primary/50",
                 visualOccupied ? "bg-accent shadow-inner" : (isEditable ? "bg-transparent hover:bg-secondary/20" : "bg-transparent"),
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
@@ -161,7 +161,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
     <div className={cn("bg-card border rounded-2xl p-6 space-y-6 shadow-sm hover:shadow-md transition-shadow", isLoading && "opacity-50 animate-pulse")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/20 rounded-xl text-primary font-bold text-lg select-none">
+          <div className="flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/40 rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/10">
             {initials}
           </div>
           <div>
@@ -198,7 +198,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
             <span>Livre</span>
           </div>
         </div>
-        <p className="hidden md:block text-primary/70 font-medium">Clique e arraste para marcar múltiplos horários</p>
+        <p className="hidden md:block text-primary/70 font-medium font-bold">Clique e arraste para marcar múltiplos horários</p>
       </div>
     </div>
   );
