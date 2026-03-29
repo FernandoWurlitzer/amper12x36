@@ -3,10 +3,11 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy, CheckCircle2 } from "lucide-react";
+import { Info, Lock, Copy, CheckCircle2, Share2, ExternalLink } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 export type Technician = {
   id: string;
@@ -41,6 +42,15 @@ export function ScheduleManager() {
         description: "Agora cole este ID na coleção 'roles_tac_members' no Console do Firebase.",
       });
     }
+  };
+
+  const copyPublicLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copiado!",
+      description: "O link público da agenda foi copiado para sua área de transferência.",
+    });
   };
 
   if (isAuthLoading || isTacLoading) {
@@ -119,21 +129,45 @@ export function ScheduleManager() {
         ))}
       </div>
 
-      <Card className="bg-muted/50 border-none shadow-none">
-        <CardContent className="p-4 flex items-start gap-3 text-sm text-muted-foreground">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Info className="h-5 w-5 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <p className="font-medium text-foreground">Informações de Uso</p>
-            <ul className="list-disc list-inside space-y-0.5">
-              <li>Membros do TAC: Clique e arraste para marcar ou desmarcar vários blocos.</li>
-              <li>Visitantes: Visualização da disponibilidade em tempo real via nuvem.</li>
-              <li>As alterações são sincronizadas instantaneamente com o banco de dados.</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-muted/50 border-none shadow-none">
+          <CardContent className="p-4 flex items-start gap-3 text-sm text-muted-foreground">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Info className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Informações de Uso</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Membros do TAC: Clique e arraste para marcar múltiplos blocos.</li>
+                <li>Visitantes: Visualização em tempo real via nuvem.</li>
+                <li>As alterações são sincronizadas instantaneamente.</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-primary/5 border border-primary/10 shadow-none overflow-hidden relative group">
+          <CardContent className="p-4 flex flex-col justify-between h-full gap-4">
+            <div className="flex items-start gap-3 text-sm text-muted-foreground">
+              <div className="bg-primary p-2 rounded-full">
+                <Share2 className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">Compartilhar Acesso</p>
+                <p className="text-xs">Envie este link para que outros vejam a agenda online.</p>
+              </div>
+            </div>
+            <Button 
+              onClick={copyPublicLink}
+              variant="outline" 
+              className="w-full gap-2 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all text-xs"
+            >
+              <Copy className="h-3 w-3" />
+              Copiar Link Público
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
