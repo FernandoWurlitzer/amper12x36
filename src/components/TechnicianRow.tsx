@@ -234,7 +234,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isHourStart && (
                   <div className={cn(
                     "text-[9px] font-black leading-none select-none pointer-events-none transition-colors",
-                    "text-foreground/40"
+                    "text-white"
                   )}>
                     {time}
                   </div>
