@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -55,7 +54,7 @@ export default function Home() {
 
       {!isFullscreen && (
         <footer className="p-8 text-center text-sm text-muted-foreground uppercase tracking-widest opacity-50">
-          AMPERNET TELECOM - Fernando Wurlitzer
+          AMPERNET TELECOM ® - Fernando Wurlitzer
         </footer>
       )}
     </div>
