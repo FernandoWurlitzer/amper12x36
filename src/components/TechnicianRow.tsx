@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -172,15 +173,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border last:border-r-0 hover:z-10",
                 isEditable ? "cursor-pointer" : "cursor-default",
                 isHourStart && "border-l-2 border-l-white",
-                visualOccupied ? "bg-accent shadow-inner" : "bg-available/20 hover:bg-available/40",
+                visualOccupied 
+                  ? (activeEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
+                  : "bg-available/20 hover:bg-available/40",
                 isInDragRange && dragAction === 'free' && "bg-muted/40 ring-2 ring-inset ring-accent/20"
               )}
             >
               {isHourStart && (
                 <div className={cn(
-                  "text-[8px] font-bold leading-none select-none pointer-events-none transition-colors",
-                  "text-foreground/60 font-black",
-                  visualOccupied ? "text-primary-foreground" : ""
+                  "text-[11px] font-black leading-none select-none pointer-events-none transition-colors",
+                  "text-foreground/60",
+                  visualOccupied ? "text-white" : ""
                 )}>
                   {time}
                 </div>
@@ -265,14 +268,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center py-1">
           <div className="flex items-center gap-2 bg-muted/30 px-6 py-1 rounded-full border border-border/40">
             <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
-              Intervalo (13:00 - 14:00)
+            <span className="text-[14px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none">
+              Intervalo
             </span>
           </div>
         </div>
@@ -283,7 +286,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/50 mt-2">
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-accent shadow-sm" />
+            <div className={cn("w-2 h-2 rounded-sm shadow-sm", activeEquipe === 2 ? "bg-green-500" : "bg-accent")} />
             <span className="font-medium">Ocupado</span>
           </div>
           <div className="flex items-center gap-1.5">
