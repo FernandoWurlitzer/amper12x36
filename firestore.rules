@@ -14,17 +14,6 @@
  * - /technicians/{technicianId}/scheduledBlocks/{blockId}: Publicly readable availability 
  *   blocks, with write access restricted to TAC Members.
  * - /roles_tac_members/{userId}: A restricted lookup collection for DBAC (Database-Based Access Control).
- * 
- * Key Security Decisions:
- * 1. Denormalization for Authorization: To ensure performant and atomic security checks, 
- *    the status of a "TAC Member" is mirrored in a flat top-level collection. This allows 
- *    the rules to use `exists()` calls rather than complex joins.
- * 2. Public Visibility: Technician schedules are readable by ANYONE (even unauthenticated) 
- *    to facilitate viewing availability, but modification is strictly gated.
- * 3. Relational Integrity: On creation of schedule blocks, the rules enforce that the 
- *    `markedByUserId` matches the authenticated user's ID for auditing purposes.
- * 4. Structural Segregation: Administrative role mapping is kept separate from standard 
- *    user profiles to prevent accidental privilege escalation.
  */
 
 rules_version = '2';
@@ -48,24 +37,19 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_tac_members/$(request.auth.uid));
     }
 
-    /** @description Combines ownership check with document existence for write operations. */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
     // --- Collection Rules ---
 
     /**
-     * @description Rules for individual user profiles. Users can only manage their own data.
+     * @description Rules for individual user profiles.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update, delete: if isExistingOwner(userId);
+      allow update, delete: if isOwner(userId);
     }
 
     /**
-     * @description Rules for role definitions. Readable by anyone.
+     * @description Rules for role definitions.
      */
     match /roles/{roleId} {
       allow get, list: if true;
@@ -73,27 +57,28 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for technician profiles. Publicly readable, manageable by TAC Members.
+     * @description Rules for technician profiles.
      */
     match /technicians/{technicianId} {
       allow get, list: if true;
       allow create, update, delete: if isTacMember();
 
       /**
-       * @description Rules for specific time blocks. Readable by anyone, managed by TAC Members.
+       * @description Rules for specific time blocks.
+       * Public read access, gated write access for TAC Members.
        */
       match /scheduledBlocks/{scheduledBlockId} {
         allow get, list: if true;
         allow create: if isTacMember() && request.resource.data.markedByUserId == request.auth.uid;
-        allow update, delete: if isTacMember() && resource != null;
+        allow update, delete: if isTacMember();
       }
     }
 
     /**
-     * @description Rules for the TAC Member lookup collection used for DBAC.
+     * @description Rules for the TAC Member lookup collection.
      */
     match /roles_tac_members/{userId} {
-      allow get: if isOwner(userId) || isTacMember();
+      allow get: if isSignedIn();
       allow list: if false;
       allow create, update, delete: if false;
     }

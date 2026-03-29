@@ -1,4 +1,3 @@
-
 "use client";
 
 import { TechnicianRow } from "./TechnicianRow";
