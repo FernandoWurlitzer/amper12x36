@@ -9,9 +9,10 @@ type Props = {
   technician: Technician;
   occupiedSlots: string[];
   onToggleSlots: (slotIds: string[]) => void;
+  isEditable?: boolean;
 };
 
-export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Props) {
+export function TechnicianRow({ technician, occupiedSlots, onToggleSlots, isEditable = false }: Props) {
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [dragEnd, setDragEnd] = useState<number | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
@@ -38,6 +39,7 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
   }, []);
 
   const handleMouseDown = (index: number) => {
+    if (!isEditable) return;
     setDragStart(index);
     setDragEnd(index);
     setDragAction(occupiedSlots.includes(slots[index]) ? 'free' : 'occupy');
@@ -95,7 +97,10 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
           </div>
 
           {/* Slots grid */}
-          <div className="flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/20">
+          <div className={cn(
+            "flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/20",
+            !isEditable && "cursor-not-allowed"
+          )}>
             {slots.map((time, index) => {
               const isOccupied = occupiedSlots.includes(time);
               const isHourStart = time.endsWith(":00");
@@ -109,13 +114,14 @@ export function TechnicianRow({ technician, occupiedSlots, onToggleSlots }: Prop
                   key={time}
                   onMouseDown={() => handleMouseDown(index)}
                   onMouseEnter={() => handleMouseEnter(index)}
-                  title={`${time} - ${isOccupied ? 'Indisponível' : 'Disponível'}`}
+                  title={`${time} - ${isOccupied ? 'Indisponível' : 'Disponível'}${!isEditable ? ' (Apenas visualização)' : ''}`}
                   className={cn(
-                    "group flex-1 relative transition-all duration-300 border-r border-border last:border-r-0 hover:z-10 cursor-pointer",
+                    "group flex-1 relative transition-all duration-300 border-r border-border last:border-r-0 hover:z-10",
+                    isEditable ? "cursor-pointer" : "cursor-default",
                     isHourStart && "border-l-2 border-l-primary/10",
                     isOccupied 
                       ? "bg-accent shadow-inner text-white" 
-                      : "bg-transparent hover:bg-secondary/50",
+                      : isEditable ? "bg-transparent hover:bg-secondary/50" : "bg-transparent",
                     isInDragRange && (
                       dragAction === 'occupy' 
                         ? "bg-accent/80" 

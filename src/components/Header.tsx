@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { Auth } from "./Auth";
 
 export function Header() {
   return (
@@ -10,6 +11,7 @@ export function Header() {
           </div>
           <h1 className="text-xl font-bold tracking-tight text-primary">Agendamento Tech</h1>
         </div>
+        <Auth />
       </div>
     </header>
   );

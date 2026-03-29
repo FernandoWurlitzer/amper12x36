@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info } from "lucide-react";
+import { Info, Lock } from "lucide-react";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export type Technician = {
   id: string;
@@ -17,8 +19,19 @@ const TECHNICIANS: Technician[] = [
 ];
 
 export function ScheduleManager() {
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
   const [scheduleData, setScheduleData] = useState<Record<string, string[]>>({});
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Check if current user is a TAC Member
+  const tacMemberRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'roles_tac_members', user.uid);
+  }, [firestore, user]);
+
+  const { data: tacMemberDoc, isLoading: isTacLoading } = useDoc(tacMemberRef);
+  const isTacMember = !!tacMemberDoc;
 
   useEffect(() => {
     const saved = localStorage.getItem("agendamento-tech-v1");
@@ -33,19 +46,17 @@ export function ScheduleManager() {
   };
 
   const handleToggleSlots = (techId: string, slotIds: string[]) => {
+    if (!isTacMember) return;
+
     setScheduleData((prev) => {
       const currentTechSlots = prev[techId] || [];
-      // Se o primeiro slot da seleção estiver livre, marcamos todos como ocupados.
-      // Se estiver ocupado, limpamos todos na seleção.
       const firstSlotId = slotIds[0];
       const shouldOccupy = !currentTechSlots.includes(firstSlotId);
       
       let updatedSlots;
       if (shouldOccupy) {
-        // Adiciona os novos slots garantindo que não haja duplicatas
         updatedSlots = Array.from(new Set([...currentTechSlots, ...slotIds]));
       } else {
-        // Remove os slots da seleção
         updatedSlots = currentTechSlots.filter((id) => !slotIds.includes(id));
       }
       
@@ -55,7 +66,7 @@ export function ScheduleManager() {
     });
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || isAuthLoading || isTacLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 animate-pulse">
         {[1, 2, 3].map((i) => (
@@ -67,6 +78,15 @@ export function ScheduleManager() {
 
   return (
     <div className="space-y-8">
+      {!isTacMember && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3 text-destructive">
+          <Lock className="h-5 w-5" />
+          <p className="text-sm font-medium">
+            Modo de visualização. Apenas membros do TAC podem alterar a agenda.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-8">
         {TECHNICIANS.map((tech) => (
           <TechnicianRow
@@ -74,6 +94,7 @@ export function ScheduleManager() {
             technician={tech}
             occupiedSlots={scheduleData[tech.id] || []}
             onToggleSlots={(slotIds) => handleToggleSlots(tech.id, slotIds)}
+            isEditable={isTacMember}
           />
         ))}
       </div>
@@ -86,9 +107,9 @@ export function ScheduleManager() {
           <div className="space-y-1">
             <p className="font-medium text-foreground">Informações de Uso</p>
             <ul className="list-disc list-inside space-y-0.5">
-              <li>Clique e arraste com o mouse para marcar ou desmarcar vários blocos de uma vez.</li>
-              <li>Cada bloco representa 15 minutos de atendimento.</li>
-              <li>As alterações são salvas automaticamente no seu navegador.</li>
+              <li>Membros do TAC: Clique e arraste para marcar ou desmarcar vários blocos.</li>
+              <li>Visitantes: Apenas visualização da disponibilidade em tempo real.</li>
+              <li>As alterações são salvas localmente (versão MVP).</li>
             </ul>
           </div>
         </CardContent>
