@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = useUser();
+  const { user } = userUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
@@ -25,6 +25,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   
   // Local state for active team (exclusive selection)
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
+  // State to trigger the blinking animation on error
+  const [isSelectionError, setIsSelectionError] = useState(false);
 
   const initials = useMemo(() => {
     return technician.name
@@ -108,6 +110,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     if (!isEditable) return;
     
     if (activeEquipe === null) {
+      setIsSelectionError(true);
+      // Reset error state after animation finishes (0.4s * 4 = 1.6s approx)
+      setTimeout(() => setIsSelectionError(false), 1600);
+      
       toast({
         variant: "destructive",
         title: "Selecione uma Equipe",
@@ -237,7 +243,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
-                className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
+                className={cn(
+                  "flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-lg",
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary/50"
+                )}
               >
                 <div className={cn(
                   "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
@@ -251,7 +260,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
-                className="flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group"
+                className={cn(
+                  "flex items-center gap-1.5 transition-all hover:opacity-80 active:scale-95 group p-1 rounded-lg",
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary/50"
+                )}
               >
                 <div className={cn(
                   "w-3 h-3 rounded-full border border-white/10 transition-all duration-300",
@@ -305,7 +317,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <span className="font-medium">Livre</span>
           </div>
         </div>
-        <p className="text-white/60 font-black text-[9px] uppercase tracking-[0.1em]">
+        <p className={cn(
+          "text-white/60 font-black text-[9px] uppercase tracking-[0.1em]",
+          isSelectionError && "text-primary animate-pulse"
+        )}>
           {activeEquipe === null ? "SELECIONE UMA EQUIPE PARA EDITAR" : "CLIQUE E ARRASTE PARA MARCAR HORÁRIOS"}
         </p>
       </div>

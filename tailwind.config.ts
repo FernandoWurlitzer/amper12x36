@@ -93,10 +93,15 @@ export default {
             height: '0',
           },
         },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.4' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        blink: 'blink 0.4s ease-in-out 4',
       },
     },
   },
