@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -10,9 +11,10 @@ import { collection, doc, serverTimestamp } from "firebase/firestore";
 type Props = {
   technician: Technician;
   isEditable?: boolean;
+  compact?: boolean;
 };
 
-export function TechnicianRow({ technician, isEditable = false }: Props) {
+export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
@@ -119,6 +121,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
       </div>
       <div className={cn(
         "flex h-16 items-stretch border border-border rounded-xl overflow-hidden bg-muted/5",
+        compact && "h-12",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -145,7 +148,10 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
               )}
             >
               {isHourStart && (
-                <div className="absolute top-1 left-1 text-[11px] font-black text-foreground pointer-events-none drop-shadow-sm select-none">
+                <div className={cn(
+                  "absolute top-1 left-1 text-[11px] font-black text-foreground pointer-events-none drop-shadow-sm select-none",
+                  compact && "text-[9px] top-0.5"
+                )}>
                   {time}
                 </div>
               )}
@@ -158,27 +164,39 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
   );
 
   return (
-    <div className={cn("bg-card border rounded-2xl p-6 space-y-6 shadow-sm hover:shadow-md transition-shadow", isLoading && "opacity-50 animate-pulse")}>
+    <div className={cn(
+      "bg-card border rounded-2xl p-6 space-y-6 shadow-sm hover:shadow-md transition-all duration-300", 
+      isLoading && "opacity-50 animate-pulse",
+      compact && "p-4 space-y-4"
+    )}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/40 rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/10">
+          <div className={cn(
+            "flex h-12 w-12 items-center justify-center bg-primary/10 border-2 border-primary/40 rounded-xl text-primary font-bold text-lg select-none shadow-sm shadow-primary/10",
+            compact && "h-10 w-10 text-base"
+          )}>
             {initials}
           </div>
           <div>
-            <h3 className="font-bold text-xl text-foreground">{technician.name}</h3>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              Sincronizado via Nuvem
-            </p>
+            <h3 className={cn("font-bold text-xl text-foreground", compact && "text-lg")}>{technician.name}</h3>
+            {!compact && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Sincronizado via Nuvem
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className={cn("space-y-4", compact && "space-y-2")}>
         {renderSlotsBar('morning', slots.morning)}
 
-        <div className="flex justify-center py-1">
-          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90">
+        <div className={cn("flex justify-center py-1", compact && "py-0")}>
+          <div className={cn(
+            "flex items-center gap-2 bg-muted/40 border border-border/50 px-3 py-1.5 rounded-lg backdrop-blur-sm scale-75 md:scale-90",
+            compact && "py-0.5 scale-75"
+          )}>
             <Coffee className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Intervalo (13:00 - 14:00)</span>
           </div>
@@ -198,7 +216,7 @@ export function TechnicianRow({ technician, isEditable = false }: Props) {
             <span>Livre</span>
           </div>
         </div>
-        <p className="hidden md:block text-primary/70 font-medium font-bold">Clique e arraste para marcar múltiplos horários</p>
+        {!compact && <p className="hidden md:block text-primary/70 font-bold">Clique e arraste para marcar múltiplos horários</p>}
       </div>
     </div>
   );
