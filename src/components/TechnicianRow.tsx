@@ -16,16 +16,14 @@ type Props = {
 };
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = userUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
   
-  // Local state for active team (exclusive selection)
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
-  // State to trigger the blinking animation on error
   const [isSelectionError, setIsSelectionError] = useState(false);
 
   const initials = useMemo(() => {
@@ -53,7 +51,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    // Aligned 6h turns (08:00 to 14:00 and 14:00 to 20:00)
     for (let h = 8; h < 14; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -79,7 +76,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           endTime: time,
           markedByUserId: user.uid,
           updatedAt: serverTimestamp(),
-          equipe: activeEquipe // Store which equipe marked it
+          equipe: activeEquipe
         }, { merge: true });
       } else {
         deleteDocumentNonBlocking(docRef);
@@ -101,7 +98,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           description: `Todos os horários de ${technician.name} foram liberados.`,
         });
       } catch (e) {
-        // Error is handled by global emitter
+        // Erro tratado pelo global emitter
       }
     }
   };
@@ -111,7 +108,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     if (activeEquipe === null) {
       setIsSelectionError(true);
-      // Reset error state after animation finishes (0.4s * 4 = 1.6s approx)
       setTimeout(() => setIsSelectionError(false), 1600);
       
       toast({
