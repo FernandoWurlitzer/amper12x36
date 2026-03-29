@@ -13,7 +13,7 @@ export type Technician = {
 const TECHNICIANS: Technician[] = [
   { id: "tech-1", name: "Francisco Beltrão" },
   { id: "tech-2", name: "Ponta Grossa" },
-  { id: "tech-3", name: "Ricardo Lima" },
+  { id: "tech-3", name: "Pato Branco" },
 ];
 
 export function ScheduleManager() {
