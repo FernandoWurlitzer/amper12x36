@@ -3,9 +3,9 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy, CheckCircle2, Share2, Users, Loader2 } from "lucide-react";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
-import { doc, collection } from "firebase/firestore";
+import { Info, Lock, Copy, CheckCircle2, Share2, Loader2 } from "lucide-react";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,13 @@ export type Technician = {
 interface ScheduleManagerProps {
   isFullscreen?: boolean;
 }
+
+// Cidades fixas conforme solicitado
+const CITIES: Technician[] = [
+  { id: "francisco-beltrao", name: "Francisco Beltrão" },
+  { id: "ponta-grossa", name: "Ponta Grossa" },
+  { id: "pato-branco", name: "Pato Branco" },
+];
 
 export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) {
   const { user, isUserLoading: isAuthLoading } = useUser();
@@ -32,14 +39,6 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
 
   const { data: tacMemberDoc, isLoading: isTacLoading } = useDoc(tacMemberRef);
   const isTacMember = !!tacMemberDoc;
-
-  // Buscar técnicos do Firestore em tempo real
-  const techniciansRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'technicians');
-  }, [firestore]);
-
-  const { data: technicians, isLoading: isTechLoading } = useCollection<Technician>(techniciansRef);
 
   const copyUid = () => {
     if (user?.uid) {
@@ -69,7 +68,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
     });
   };
 
-  if (isAuthLoading || isTacLoading || isTechLoading) {
+  if (isAuthLoading || isTacLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
@@ -131,31 +130,19 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
         </div>
       )}
 
-      {technicians && technicians.length > 0 ? (
-        <div className={cn(
-          "grid grid-cols-1 gap-8",
-          isFullscreen && "gap-4"
-        )}>
-          {technicians.map((tech) => (
-            <TechnicianRow
-              key={tech.id}
-              technician={tech}
-              isEditable={isTacMember}
-              compact={isFullscreen}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="py-20 text-center border-2 border-dashed rounded-2xl border-border/50 space-y-4">
-          <Users className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
-          <div className="space-y-2">
-            <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Nenhum técnico disponível</p>
-            <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto italic">
-              Vá para a página de Técnicos e adicione novos profissionais à equipe.
-            </p>
-          </div>
-        </div>
-      )}
+      <div className={cn(
+        "grid grid-cols-1 gap-8",
+        isFullscreen && "gap-4"
+      )}>
+        {CITIES.map((city) => (
+          <TechnicianRow
+            key={city.id}
+            technician={city}
+            isEditable={isTacMember}
+            compact={isFullscreen}
+          />
+        ))}
+      </div>
 
       {!isFullscreen && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,8 +155,8 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                 <p className="font-medium text-foreground">Informações de Uso</p>
                 <ul className="list-disc list-inside space-y-0.5">
                   <li>Membros do TAC: Clique e arraste para marcar múltiplos blocos.</li>
-                  <li>Visitantes: Visualização em tempo real via nuvem.</li>
-                  <li>As alterações são sincronizadas instantaneamente.</li>
+                  <li>As cidades representam a agenda das equipes regionais.</li>
+                  <li>As alterações são sincronizadas instantaneamente para todos.</li>
                 </ul>
               </div>
             </CardContent>
@@ -183,7 +170,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">Compartilhar Acesso</p>
-                  <p className="text-xs">Use o link público do App Hosting para que outros vejam a agenda online.</p>
+                  <p className="text-xs">Use o link público para que outros vejam a disponibilidade das cidades.</p>
                 </div>
               </div>
               <Button 
