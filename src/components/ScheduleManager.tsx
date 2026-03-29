@@ -3,11 +3,10 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy, CheckCircle2, Share2, Loader2 } from "lucide-react";
+import { Info, Lock, Copy, CheckCircle2, Loader2, MousePointer2, ShieldCheck, Eye } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type Technician = {
@@ -48,24 +47,6 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
         description: "Agora cole este ID na coleção 'roles_tac_members' no Console do Firebase.",
       });
     }
-  };
-
-  const copyPublicLink = () => {
-    const url = window.location.href;
-    if (url.includes('workstations.cloud.google.com')) {
-      toast({
-        variant: "destructive",
-        title: "Atenção!",
-        description: "Você está no modo editor. Use o link do App Hosting (Console Firebase) para compartilhar.",
-      });
-      return;
-    }
-    
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Link Copiado!",
-      description: "O link público da agenda foi copiado para sua área de transferência.",
-    });
   };
 
   if (isAuthLoading || isTacLoading) {
@@ -142,34 +123,41 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
 
       {!isFullscreen && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-          <Card className="bg-muted/50 border-none shadow-none">
-            <CardContent className="p-3 flex items-start gap-2 text-[11px] text-muted-foreground">
-              <div className="bg-primary/10 p-1.5 rounded-full shrink-0">
-                <Info className="h-4 w-4 text-primary" />
+          <Card className="bg-primary/5 border border-primary/10 shadow-none">
+            <CardContent className="p-4 flex items-start gap-3 text-[11px] text-muted-foreground">
+              <div className="bg-primary/20 p-2 rounded-lg shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
-              <div className="space-y-0.5">
-                <p className="font-bold text-foreground uppercase tracking-tight">Dicas</p>
-                <p>Clique e arraste para marcar blocos. As cidades são regionais.</p>
+              <div className="space-y-1">
+                <p className="font-black text-foreground uppercase tracking-wider flex items-center gap-2">
+                  Painel de Administração (TAC)
+                </p>
+                <ul className="list-disc pl-4 space-y-1 opacity-80">
+                  <li>Selecione <b>E1</b> ou <b>E2</b> antes de marcar.</li>
+                  <li>Clique e arraste para ocupar vários blocos de 15 min.</li>
+                  <li>Clique em um bloco já ocupado para <b>liberar</b> o horário.</li>
+                  <li>Use o botão <b>Limpar</b> para zerar toda a agenda da cidade.</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-primary/5 border border-primary/10 shadow-none overflow-hidden">
-            <CardContent className="p-3 flex items-center justify-between h-full gap-3">
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <div className="bg-primary p-1.5 rounded-full shrink-0">
-                  <Share2 className="h-3 w-3 text-primary-foreground" />
-                </div>
-                <p className="font-bold text-foreground uppercase tracking-tight">Compartilhar</p>
+          <Card className="bg-muted/30 border-none shadow-none">
+            <CardContent className="p-4 flex items-start gap-3 text-[11px] text-muted-foreground">
+              <div className="bg-muted p-2 rounded-lg shrink-0">
+                <Eye className="h-5 w-5 text-muted-foreground" />
               </div>
-              <Button 
-                onClick={copyPublicLink}
-                variant="outline" 
-                className="h-8 gap-1.5 border-primary/20 hover:bg-primary/10 transition-all text-[10px] font-bold uppercase"
-              >
-                <Copy className="h-3 w-3" />
-                Copiar Link
-              </Button>
+              <div className="space-y-1">
+                <p className="font-black text-foreground uppercase tracking-wider flex items-center gap-2">
+                  Painel de Visualização
+                </p>
+                <ul className="list-disc pl-4 space-y-1 opacity-80">
+                  <li><b>Laranja (E1):</b> Equipe 1 em atendimento.</li>
+                  <li><b>Verde (E2):</b> Equipe 2 em atendimento.</li>
+                  <li><b>Preto/Escuro:</b> Horário livre para agendamento.</li>
+                  <li>Horários passados ficam esmaecidos automaticamente.</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </div>
