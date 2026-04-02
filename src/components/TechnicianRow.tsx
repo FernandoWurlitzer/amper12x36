@@ -71,9 +71,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const hours = now.getHours();
       const minutes = now.getMinutes();
       setCurrentTime({ h: hours, m: minutes });
-      // Comportamento de visualização automática baseado na hora atual
-      if (hours < 13) setVisibleShift(null); // Ver ambos se for manhã
-      else setVisibleShift('afternoon');    // Focar na tarde se já passou das 13h
+      if (hours < 13) setVisibleShift(null);
+      else setVisibleShift('afternoon');
     };
     updateTime();
     const interval = setInterval(updateTime, 60000);
@@ -204,9 +203,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    if (confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}?`)) {
+    if (window.confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
+        if (snapshot.empty) {
+          toast({ title: "Agenda vazia", description: "Não há horários marcados para limpar." });
+          return;
+        }
         snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
         toast({ title: "Agenda Limpa", description: `Todos os horários de ${technician.name} foram removidos.` });
       } catch (e) {
@@ -379,4 +382,3 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     </div>
   );
 }
-
