@@ -5,10 +5,26 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { Trash2, Sunrise, Sunset, Lock, CheckCircle2, Shield, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
-import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { 
+  useFirestore, 
+  useCollection, 
+  useDoc, 
+  useMemoFirebase, 
+  useUser, 
+  setDocumentNonBlocking, 
+  deleteDocumentNonBlocking,
+  updateDocumentNonBlocking
+} from "@/firebase";
 import { collection, doc, serverTimestamp, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Props = {
   technician: Technician;
@@ -51,6 +67,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
   const [isSelectionError, setIsSelectionError] = useState(false);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   const scheduledBlocksRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -262,17 +279,30 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
   };
 
-  const handleClearAll = async () => {
+  const handleClearSelection = async (mode: 'e1' | 'e2' | 'both') => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    if (window.confirm(`LIMPAR TODOS os horários de ${technician.name}?`)) {
-      const snapshot = await getDocs(scheduledBlocksRef);
-      snapshot.docs.forEach(d => {
-        const timeKey = d.id;
-        const [h, m] = timeKey.split(':').map(Number);
-        if (!isPast(h, m)) deleteDocumentNonBlocking(d.ref);
-      });
-      toast({ title: "Agenda Limpa" });
-    }
+    
+    const snapshot = await getDocs(scheduledBlocksRef);
+    snapshot.docs.forEach(d => {
+      const timeKey = d.id;
+      const [h, m] = timeKey.split(':').map(Number);
+      
+      if (!isPast(h, m)) {
+        if (mode === 'both') {
+          deleteDocumentNonBlocking(d.ref);
+        } else if (mode === 'e1') {
+          updateDocumentNonBlocking(d.ref, { equipe1: false });
+        } else if (mode === 'e2') {
+          updateDocumentNonBlocking(d.ref, { equipe2: false });
+        }
+      }
+    });
+    
+    setClearDialogOpen(false);
+    toast({ 
+      title: "Agenda Limpa", 
+      description: mode === 'both' ? "Todas as equipes removidas." : `Equipe ${mode.toUpperCase()} removida.`
+    });
   };
 
   const handleStatusToggle = () => {
@@ -407,7 +437,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 <div className={cn("w-1.5 h-1.5 rounded-full", activeEquipe === 2 ? "bg-white" : "bg-emerald-500")} />
                 <span className="text-[8px] font-black uppercase tracking-widest">E2</span>
               </button>
-              <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-6 text-[7px] gap-1 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black rounded-md px-1.5">
+              <Button variant="ghost" size="sm" onClick={() => setClearDialogOpen(true)} className="h-6 text-[7px] gap-1 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black rounded-md px-1.5">
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
@@ -427,6 +457,49 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           {isEditable ? "PRESSIONE E ARRASTE" : "MODO VISUALIZAÇÃO"}
         </p>
       </div>
+
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] border-primary/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl uppercase font-black tracking-tighter">Limpar Agenda</DialogTitle>
+            <DialogDescription className="text-center text-xs uppercase tracking-widest opacity-70">
+              Selecione qual equipe deseja remover para {technician.name}:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            <Button 
+              variant="outline" 
+              className="h-12 border-red-500/50 hover:bg-red-500/10 text-red-500 font-black uppercase tracking-widest text-[10px]"
+              onClick={() => handleClearSelection('e1')}
+            >
+              Limpar Equipe 1 (E1)
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-12 border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-500 font-black uppercase tracking-widest text-[10px]"
+              onClick={() => handleClearSelection('e2')}
+            >
+              Limpar Equipe 2 (E2)
+            </Button>
+            <Button 
+              className="h-12 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest text-[10px]"
+              onClick={() => handleClearSelection('both')}
+            >
+              Limpar Ambas
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="mt-2 text-[8px] uppercase tracking-[0.3em] opacity-50"
+              onClick={() => setClearDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+          </div>
+          <p className="text-[9px] text-center text-muted-foreground uppercase tracking-widest italic">
+            * Histórico de atendimentos passados será preservado.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
