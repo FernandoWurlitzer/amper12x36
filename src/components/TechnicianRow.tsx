@@ -107,7 +107,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
         arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
       }
-      // Add the final closing hour :00 slot
       const lastH = end.toString().padStart(2, "0");
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, minute: 0 });
     };
@@ -158,9 +157,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       targetSlots.slice(min, max + 1).forEach((s) => {
         keysToUpdate.add(s.key);
         
-        // Linkage logic:
-        // - 15 mins marks the 00 min of the same hour.
-        // - 45 mins marks the 00 min of the NEXT hour.
         if (s.minute === 15) {
           const hStr = s.time.split(":")[0];
           keysToUpdate.add(`${hStr}:00`);
@@ -275,6 +271,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
           }
 
+          // Verificação para manter a borda grossa apenas no fechamento final do turno
+          const isShiftEnd = index === timeSlots.length - 1;
+
           return (
             <div
               key={slot.key}
@@ -282,7 +281,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5",
-                slot.isHourStart && "border-l-2 border-white/20",
+                isShiftEnd && "border-r-2 border-white/20",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5",
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
@@ -292,13 +291,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 {visualE1 && (
                   <div className={cn(
                     "bg-red-600 transition-all duration-300",
-                    visualE2 ? "h-1/2" : "h-full"
+                    !visualE2 ? "h-full" : "h-1/2"
                   )} />
                 )}
                 {visualE2 && (
                   <div className={cn(
                     "bg-emerald-500 transition-all duration-300",
-                    visualE1 ? "h-1/2" : "h-full"
+                    !visualE1 ? "h-full" : "h-1/2"
                   )} />
                 )}
               </div>
