@@ -281,8 +281,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex items-center justify-center transition-all duration-75 border-r-2 border-zinc-950/50 last:border-r-0",
-                slot.type === 'combined' ? "flex-[2] bg-zinc-800/40" : "flex-1",
+                "group relative flex items-center justify-center transition-all duration-75 border-r border-zinc-950/30 last:border-r-0",
+                slot.type === 'combined' ? "flex-[2] bg-zinc-800/40 border-r-2 border-zinc-950" : "flex-1",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-red-600") 
