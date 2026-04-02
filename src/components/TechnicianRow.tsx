@@ -103,9 +103,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
         arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true, minute: 0 });
-        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false, minute: 15 });
-        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
-        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
+        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `:15`, isHourStart: false, minute: 15 });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `:30`, isHourStart: false, minute: 30 });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `:45`, isHourStart: false, minute: 45 });
       }
       const lastH = end.toString().padStart(2, "0");
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, minute: 0 });
@@ -137,7 +137,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         if (activeEquipe === null) {
           deleteDocumentNonBlocking(docRef);
         } else {
-          const update: any = {};
+          const update: any = {
+            markedByUserId: user.uid,
+            updatedAt: serverTimestamp(),
+          };
           if (activeEquipe === 1) update.equipe1 = false;
           if (activeEquipe === 2) update.equipe2 = false;
           setDocumentNonBlocking(docRef, update, { merge: true });
@@ -153,64 +156,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const maxIdx = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
-      const rangeKeys = new Set<string>();
-      targetSlots.slice(minIdx, maxIdx + 1).forEach(s => rangeKeys.add(s.key));
-
-      const keysToUpdate = new Set<string>();
-      targetSlots.slice(minIdx, maxIdx + 1).forEach((s) => {
-        keysToUpdate.add(s.key);
-        
-        if (dragAction === 'occupy') {
-          if (s.minute === 15) {
-            const hStr = s.time.split(":")[0];
-            keysToUpdate.add(`${hStr}:00`);
-          } else if (s.minute === 45) {
-            const hStr = s.time.split(":")[0];
-            const nextH = (parseInt(hStr) + 1).toString().padStart(2, '0');
-            keysToUpdate.add(`${nextH}:00`);
-          }
-        } else {
-          // dragAction === 'free'
-          if (s.minute === 15) {
-            const hStr = s.time.split(":")[0];
-            const prevH = (parseInt(hStr) - 1).toString().padStart(2, '0');
-            const prev45Key = `${prevH}:45`;
-            const prev45 = occupiedSlotsMap[prev45Key] || { e1: false, e2: false };
-            
-            let isPrev45Active = false;
-            if (activeEquipe === 1) isPrev45Active = prev45.e1;
-            else if (activeEquipe === 2) isPrev45Active = prev45.e2;
-            else isPrev45Active = prev45.e1 || prev45.e2;
-
-            // Só desmarca a hora cheia se o 45 anterior NÃO estiver marcado E NÃO estiver no range sendo desmarcado agora
-            if (!isPrev45Active && !rangeKeys.has(prev45Key)) {
-              keysToUpdate.add(`${hStr}:00`);
-            }
-          } else if (s.minute === 45) {
-            const hStr = s.time.split(":")[0];
-            const nextH = (parseInt(hStr) + 1).toString().padStart(2, '0');
-            const next15Key = `${nextH}:15`;
-            const next15 = occupiedSlotsMap[next15Key] || { e1: false, e2: false };
-            
-            let isNext15Active = false;
-            if (activeEquipe === 1) isNext15Active = next15.e1;
-            else if (activeEquipe === 2) isNext15Active = next15.e2;
-            else isNext15Active = next15.e1 || next15.e2;
-
-            // Só desmarca a hora cheia seguinte se o 15 daquela hora NÃO estiver marcado E NÃO estiver no range sendo desmarcado agora
-            if (!isNext15Active && !rangeKeys.has(next15Key)) {
-              keysToUpdate.add(`${nextH}:00`);
-            }
-          }
-        }
-      });
-
-      handleToggleSlots(Array.from(keysToUpdate), dragAction);
+      const keysToUpdate = targetSlots.slice(minIdx, maxIdx + 1).map(s => s.key);
+      handleToggleSlots(keysToUpdate, dragAction);
     }
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots, occupiedSlotsMap, activeEquipe]);
+  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -343,7 +295,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 "absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-tighter uppercase pointer-events-none",
                 (visualE1 || visualE2) ? "text-white drop-shadow-md" : "text-muted-foreground/60"
               )}>
-                {slot.isHourStart ? `${slot.time}` : slot.label}
+                {slot.label}
               </span>
             </div>
           );
