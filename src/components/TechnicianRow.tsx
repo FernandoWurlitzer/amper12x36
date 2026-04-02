@@ -44,6 +44,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
 
+  // Limpeza automática às 20:59 e Controle de Visibilidade
   useEffect(() => {
     const autoClearAll = async () => {
       if (!firestore || !scheduledBlocksRef || !isEditable) return;
@@ -62,21 +63,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Lógica de visibilidade: Até as 12:59 mostra ambas, depois somente tarde
+      // Até as 12:59 mostra ambas, depois somente tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
-      // Limpeza automática às 20:59
+      // Limpeza automática pontual às 20:59
       if (hours === 20 && minutes === 59) {
         autoClearAll();
       }
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 60000);
+    const interval = setInterval(updateTime, 60000); // Atualiza a cada minuto
     return () => clearInterval(interval);
   }, [firestore, scheduledBlocksRef, isEditable]);
 
@@ -170,6 +171,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const existingEquipe = occupiedSlotsMap[time];
     const isOccupied = !!existingEquipe;
 
+    // Se clicar em um horário livre sem equipe, avisa
     if (activeEquipe === null) {
       if (isOccupied) {
         setDragStart({ type, index });
@@ -200,14 +202,23 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    if (confirm(`Limpar toda a agenda de ${technician.name}?`)) {
+    if (confirm(`Deseja LIMPAR todos os horários da cidade ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
         snapshot.docs.forEach(d => {
           deleteDocumentNonBlocking(d.ref);
         });
-        toast({ title: "Agenda Limpa", description: "Todos os horários foram liberados." });
-      } catch (e) {}
+        toast({ 
+          title: "Agenda Limpa", 
+          description: `Todos os horários de ${technician.name} foram liberados.` 
+        });
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao limpar",
+          description: "Não foi possível remover os agendamentos."
+        });
+      }
     }
   };
 
@@ -289,17 +300,36 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex items-center gap-4">
           {isEditable && (
             <div className="flex items-center gap-2">
-              <button onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 1 ? "bg-primary/20 border-primary" : "bg-muted/30 border-transparent", isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary")}>
+              <button 
+                onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
+                  activeEquipe === 1 ? "bg-primary/20 border-primary" : "bg-muted/30 border-transparent", 
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
+                )}
+              >
                 <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 1 ? "bg-primary" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
-              <button onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 2 ? "bg-green-500/20 border-green-500" : "bg-muted/30 border-transparent", isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary")}>
+              <button 
+                onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
+                  activeEquipe === 2 ? "bg-green-500/20 border-green-500" : "bg-muted/30 border-transparent", 
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
+                )}
+              >
                 <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 2 ? "bg-green-500" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
               <div className="w-px h-6 bg-border mx-2" />
-              <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest">
-                <Trash2 className="h-4 w-4" /> Limpar
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleClearAll} 
+                className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest"
+              >
+                <Trash2 className="h-4 w-4" /> LIMPAR
               </Button>
             </div>
           )}
