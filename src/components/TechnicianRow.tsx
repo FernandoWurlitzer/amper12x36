@@ -276,13 +276,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
-                {visualOccupied && (
-                  <span className="text-[10px] font-black text-white select-none">E{visualEquipe}</span>
-                )}
                 {isHourStart && (
                   <div className={cn(
-                    "text-[7px] font-black tracking-tighter absolute bottom-0.5",
-                    visualOccupied ? "text-white/60" : "text-white/30"
+                    "text-[8px] font-black absolute inset-0 flex items-center justify-center",
+                    visualOccupied ? "text-white/90" : "text-muted-foreground/50"
                   )}>
                     {time}
                   </div>
@@ -357,4 +354,3 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     </div>
   );
 }
-
