@@ -6,7 +6,7 @@ import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc, serverTimestamp, getDocs, query } from "firebase/firestore";
+import { collection, doc, serverTimestamp, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,7 +44,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
 
-  // Atualização de tempo e visibilidade das barras
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -53,7 +52,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Até as 12:59 mostra ambas, depois somente tarde
+      // Até as 12:59 mostra ambas, a partir das 13:00 somente tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
@@ -276,11 +275,19 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
               )}
             >
-              {visualOccupied ? (
-                <span className="text-[10px] font-black text-white pointer-events-none select-none">E{visualEquipe}</span>
-              ) : (
-                isHourStart && <div className="text-[8px] font-black text-white/30">{time}</div>
-              )}
+              <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
+                {visualOccupied && (
+                  <span className="text-[10px] font-black text-white select-none">E{visualEquipe}</span>
+                )}
+                {isHourStart && (
+                  <div className={cn(
+                    "text-[7px] font-black tracking-tighter absolute bottom-0.5",
+                    visualOccupied ? "text-white/60" : "text-white/30"
+                  )}>
+                    {time}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -350,3 +357,4 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     </div>
   );
 }
+
