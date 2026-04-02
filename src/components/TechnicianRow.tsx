@@ -29,7 +29,7 @@ interface TechnicianProfile {
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = useUser();
+  const { user } = user();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -105,15 +105,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const slots = useMemo(() => {
     const morning = [];
     const afternoon = [];
-    // Morning: 08:00 to 13:00 - 3 blocks per hour (00, 30, 45)
+    // Morning: 08:00 to 13:00 - 4 blocks per hour (00, 15, 30, 45)
     for (let h = 8; h < 13; h++) {
       morning.push(`${h.toString().padStart(2, "0")}:00`);
+      morning.push(`${h.toString().padStart(2, "0")}:15`);
       morning.push(`${h.toString().padStart(2, "0")}:30`);
       morning.push(`${h.toString().padStart(2, "0")}:45`);
     }
-    // Afternoon: 14:00 to 20:00 - 3 blocks per hour (00, 30, 45)
+    // Afternoon: 14:00 to 20:00 - 4 blocks per hour (00, 15, 30, 45)
     for (let h = 14; h < 20; h++) {
       afternoon.push(`${h.toString().padStart(2, "0")}:00`);
+      afternoon.push(`${h.toString().padStart(2, "0")}:15`);
       afternoon.push(`${h.toString().padStart(2, "0")}:30`);
       afternoon.push(`${h.toString().padStart(2, "0")}:45`);
     }
@@ -300,8 +302,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-l-4 border-white/40 flex-[2]" : "border-l border-white/15 flex-[1]",
+                "group relative flex-1 flex items-center justify-center transition-all duration-75",
+                isHourStart ? "border-l-[3px] border-white/40" : "border-l border-white/15",
                 "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
