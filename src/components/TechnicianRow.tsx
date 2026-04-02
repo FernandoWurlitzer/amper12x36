@@ -24,6 +24,7 @@ interface ScheduledBlockData {
 
 interface TechnicianProfile {
   status?: "OPERACIONAL" | "INDISPONÍVEL" | "SOBREAVISO";
+  name?: string;
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
@@ -40,7 +41,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
-  // Referência para os blocos agendados
   const scheduledBlocksRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
@@ -48,7 +48,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
 
-  // Referência para o perfil do técnico/cidade (para o Status)
   const techProfileRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'technicians', technician.id);
@@ -229,7 +228,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDocumentNonBlocking(techProfileRef, {
       status: nextStatus,
       updatedAt: serverTimestamp(),
-      name: technician.name // Garante que o documento tenha o nome se estiver sendo criado agora
+      name: technician.name
     }, { merge: true });
     
     toast({
@@ -256,7 +255,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       <div className={cn(
-        "flex h-12 items-stretch border border-white/20 rounded-xl overflow-hidden bg-zinc-900 shadow-2xl backdrop-blur-md",
+        "flex h-12 items-stretch border border-white/10 rounded-xl overflow-hidden bg-zinc-900 shadow-2xl backdrop-blur-md",
         (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((time, index) => {
@@ -290,7 +289,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r",
-                isHourStart ? "border-white/30" : "border-white/10",
+                isHourStart ? "border-white/20" : "border-white/5",
                 "last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
@@ -303,7 +302,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 {isHourStart && (
                   <div className={cn(
                     "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
-                    visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/50"
+                    visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40"
                   )}>
                     {time}
                   </div>
@@ -317,10 +316,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   );
 
   return (
-    <div className={cn("bg-card/50 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/20 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
+    <div className={cn("bg-card/40 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/10 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center bg-primary/10 border border-white rounded-xl text-primary font-black text-sm select-none">
+          <div className="flex h-11 w-11 items-center justify-center bg-zinc-900 border border-black rounded-xl text-white font-black text-sm select-none shadow-lg shadow-black/50">
             {initials}
           </div>
           <div className="space-y-0.5">
