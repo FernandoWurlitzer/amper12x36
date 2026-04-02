@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Trash2, Sunrise, Sunset, Lock, CheckCircle2, Shield } from "lucide-react";
+import { Trash2, Sunrise, Sunset, Lock, CheckCircle2, Shield, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -150,7 +150,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       keysToProcess.add(k);
 
       if (action === 'occupy') {
-        // Only apply automatic hour linking for single slot selection
         if (!isBatch) {
           if (m === 15) keysToProcess.add(`${hStr}:00`);
           if (m === 45) {
@@ -159,7 +158,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           }
         }
       } else {
-        // Only apply automatic hour unlinking for single slot selection
         if (!isBatch) {
           if (m === 15) {
             const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
@@ -271,7 +269,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       snapshot.docs.forEach(d => {
         const timeKey = d.id;
         const [h, m] = timeKey.split(':').map(Number);
-        // Lixeira Seletiva: remove apenas horários futuros ou o atual exato
         if (!isPast(h, m)) deleteDocumentNonBlocking(d.ref);
       });
       toast({ title: "Agenda Limpa" });
@@ -298,14 +295,31 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => {
     if (timeSlots.length === 0) return null;
     return (
-      <div className="space-y-1 select-none flex-1">
+      <div className="space-y-1 select-none flex-1 relative">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 text-[7px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             {type === 'morning' ? <Sunrise className="h-2 w-2 text-red-600" /> : <Sunset className="h-2 w-2 text-blue-400" />}
             {type === 'morning' ? 'Manhã' : 'Tarde (14:00 - 20:00)'}
           </div>
         </div>
-        <div className={cn("flex h-20 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl", (!isEditable || isLoading) && "opacity-75")}>
+        
+        {/* Floating Time Indicator */}
+        {dragStart && dragEnd && dragStart.type === type && (
+          <div 
+            className="absolute -top-8 z-50 pointer-events-none transition-all duration-75"
+            style={{ 
+              left: `${(Math.min(dragStart.index, dragEnd.index) / timeSlots.length) * 100}%`,
+              width: `${(Math.abs(dragEnd.index - dragStart.index) + 1) / timeSlots.length * 100}%`
+            }}
+          >
+            <div className="mx-auto bg-primary text-white text-[9px] font-black px-2 py-1 rounded shadow-xl border border-white/20 flex items-center gap-1 w-fit whitespace-nowrap">
+              <Clock className="h-2 w-2" />
+              {timeSlots[dragEnd.index].key}
+            </div>
+          </div>
+        )}
+
+        <div className={cn("flex h-20 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
           {timeSlots.map((slot, index) => {
             const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
             const isSlotPast = isPast(slot.h, slot.m);
@@ -349,7 +363,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 </div>
                 
                 <span className={cn(
-                  "absolute inset-0 flex items-center justify-center text-[9px] font-black tracking-tighter uppercase pointer-events-none",
+                  "absolute inset-0 flex items-center justify-center text-[9px] font-black tracking-tighter uppercase pointer-events-none transition-colors",
                   isSlotPast ? "text-muted-foreground/30" : "text-white"
                 )}>
                   {slot.label}
