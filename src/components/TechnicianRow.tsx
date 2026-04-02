@@ -28,7 +28,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Estados para o recurso de clicar e arrastar
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
@@ -38,8 +37,24 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
-  // Efeito para sincronizar com o horário real e controlar a visibilidade das barras
+  const scheduledBlocksRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
+  }, [firestore, technician.id]);
+
+  const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
+
   useEffect(() => {
+    const autoClearAll = async () => {
+      if (!firestore || !scheduledBlocksRef || !isEditable) return;
+      try {
+        const snapshot = await getDocs(scheduledBlocksRef);
+        snapshot.docs.forEach(d => {
+          deleteDocumentNonBlocking(d.ref);
+        });
+      } catch (e) {}
+    };
+
     const updateTime = () => {
       const now = new Date();
       const hours = now.getHours();
@@ -47,18 +62,23 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // NOVA LÓGICA: Até às 12:59 mostra ambas (null), depois somente tarde ('afternoon')
+      // Lógica de visibilidade: Até as 12:59 mostra ambas, depois somente tarde
       if (hours < 13) {
-        setVisibleShift(null); // null faz com que as duas condições de renderização sejam verdadeiras
+        setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
+      }
+
+      // Limpeza automática às 20:59
+      if (hours === 20 && minutes === 59) {
+        autoClearAll();
       }
     };
 
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [firestore, scheduledBlocksRef, isEditable]);
 
   const initials = useMemo(() => {
     return technician.name
@@ -69,13 +89,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       .slice(0, 2);
   }, [technician.name]);
 
-  const scheduledBlocksRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
-  }, [firestore, technician.id]);
-
-  const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
-  
   const occupiedSlotsMap = useMemo(() => {
     const map: Record<string, number> = {};
     if (blocksData) {
@@ -89,14 +102,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const slots = useMemo(() => {
     const morning = [];
     const afternoon = [];
-    
-    // Turno 1: 08:00 às 13:00
     for (let h = 8; h < 13; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
       }
     }
-    // Turno 2: 14:00 às 20:00
     for (let h = 14; h < 20; h++) {
       for (let m = 0; m < 60; m += 15) {
         afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -110,7 +120,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     slotIds.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
-      
       if (action === 'occupy' && activeEquipe !== null) {
         setDocumentNonBlocking(docRef, {
           technicianId: technician.id,
@@ -121,16 +130,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           equipe: activeEquipe
         }, { merge: true });
       } else if (action === 'free') {
-        // Desmarca se não houver equipe selecionada OU se a equipe do slot for a mesma ativa
-        if (activeEquipe === null || occupiedSlotsMap[time] === activeEquipe) {
-          deleteDocumentNonBlocking(docRef);
-        }
+        deleteDocumentNonBlocking(docRef);
       }
     });
-  }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap]);
+  }, [isEditable, user, firestore, technician.id, activeEquipe]);
 
   const handleMouseUp = useCallback(() => {
-    if (dragStart !== null && dragEnd !== null && dragAction !== null && dragStart.type === dragEnd.type) {
+    if (dragStart !== null && dragEnd !== null && dragAction !== null) {
       const type = dragStart.type;
       const min = Math.min(dragStart.index, dragEnd.index);
       const max = Math.max(dragStart.index, dragEnd.index);
@@ -155,7 +161,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       toast({
         variant: "destructive",
         title: "Acesso Restrito",
-        description: "Você não tem permissão para editar a agenda do TAC.",
+        description: "Apenas membros do TAC podem editar a agenda.",
       });
       return;
     }
@@ -164,7 +170,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const existingEquipe = occupiedSlotsMap[time];
     const isOccupied = !!existingEquipe;
 
-    // Se nenhuma equipe estiver selecionada
     if (activeEquipe === null) {
       if (isOccupied) {
         setDragStart({ type, index });
@@ -182,10 +187,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       return;
     }
 
-    // Se houver equipe selecionada
     setDragStart({ type, index });
     setDragEnd({ type, index });
-    setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
+    setDragAction(isOccupied && existingEquipe === activeEquipe ? 'free' : 'occupy');
   };
 
   const handleMouseEnter = (type: 'morning' | 'afternoon', index: number) => {
@@ -196,17 +200,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    
-    if (confirm(`Deseja limpar toda a agenda de ${technician.name}?`)) {
+    if (confirm(`Limpar toda a agenda de ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
         snapshot.docs.forEach(d => {
           deleteDocumentNonBlocking(d.ref);
         });
-        toast({
-          title: "Agenda Limpa",
-          description: `Todos os horários de ${technician.name} foram liberados.`,
-        });
+        toast({ title: "Agenda Limpa", description: "Todos os horários foram liberados." });
       } catch (e) {}
     }
   };
@@ -233,7 +233,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const equipeId = occupiedSlotsMap[time];
           const isOccupied = !!equipeId;
           const isHourStart = time.endsWith(":00");
-          
           const [slotH, slotM] = time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
@@ -242,50 +241,36 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             index >= Math.min(dragStart.index, dragEnd.index) && 
             index <= Math.max(dragStart.index, dragEnd.index);
 
-          let visualEquipe = equipeId;
           let visualOccupied = isOccupied;
+          let visualEquipe = equipeId;
 
           if (isInDragRange && dragAction) {
             if (dragAction === 'occupy') {
               visualOccupied = true;
               visualEquipe = activeEquipe!;
             } else if (dragAction === 'free') {
-              if (activeEquipe === null || equipeId === activeEquipe) {
-                visualOccupied = false;
-                visualEquipe = undefined;
-              }
+              visualOccupied = false;
             }
           }
 
           return (
             <div
               key={time}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleMouseDown(type, index);
-              }}
+              onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-150 border-r border-border/40 last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
-                isHourStart && !visualOccupied && "border-l border-l-white/10",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500" : "bg-primary") 
                   : "bg-transparent hover:bg-white/5",
-                isInDragRange && dragAction === 'free' && "bg-destructive/20 ring-2 ring-inset ring-destructive/40",
                 isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
               )}
             >
               {visualOccupied ? (
-                <span className="text-[10px] font-black text-white pointer-events-none select-none">
-                  E{visualEquipe}
-                </span>
+                <span className="text-[10px] font-black text-white pointer-events-none select-none">E{visualEquipe}</span>
               ) : (
-                isHourStart && (
-                  <div className="text-[8px] font-black leading-none select-none pointer-events-none text-white/30">
-                    {time}
-                  </div>
-                )
+                isHourStart && <div className="text-[8px] font-black text-white/30">{time}</div>
               )}
             </div>
           );
@@ -295,81 +280,40 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   );
 
   return (
-    <div className={cn(
-      "bg-card border rounded-xl p-3 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", 
-      isLoading && "opacity-50",
-      compact && "p-2"
-    )}>
+    <div className={cn("bg-card border rounded-xl p-3 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", isLoading && "opacity-50", compact && "p-2")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none">
-            {initials}
-          </div>
+          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none">{initials}</div>
           <h3 className="font-bold text-sm text-foreground tracking-tight uppercase">{technician.name}</h3>
         </div>
-        
         <div className="flex items-center gap-4">
           {isEditable && (
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95",
-                  activeEquipe === 1 ? "bg-primary/20 border-primary shadow-lg shadow-primary/10" : "bg-muted/30 border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
-                )}
-              >
+              <button onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 1 ? "bg-primary/20 border-primary" : "bg-muted/30 border-transparent", isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary")}>
                 <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 1 ? "bg-primary" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
-
-              <button 
-                onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95",
-                  activeEquipe === 2 ? "bg-green-500/20 border-green-500 shadow-lg shadow-green-500/10" : "bg-muted/30 border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
-                )}
-              >
+              <button onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 2 ? "bg-green-500/20 border-green-500" : "bg-muted/30 border-transparent", isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary")}>
                 <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 2 ? "bg-green-500" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
-
               <div className="w-px h-6 bg-border mx-2" />
-
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleClearAll}
-                className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest"
-              >
-                <Trash2 className="h-4 w-4" />
-                Limpar
+              <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest">
+                <Trash2 className="h-4 w-4" /> Limpar
               </Button>
             </div>
           )}
         </div>
       </div>
-
       <div className="space-y-3">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
-
       <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/10">
         <div className="flex gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
-            <span>Equipe 1</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-            <span>Equipe 2</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm border border-white/20" />
-            <span>Livre</span>
-          </div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-primary" /><span>Equipe 1</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-green-500" /><span>Equipe 2</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm border border-white/20" /><span>Livre</span></div>
         </div>
         <p className="font-black text-[8px] uppercase tracking-widest text-primary/60">
           {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA OCUPAR") : "MODO VISUALIZAÇÃO"}
