@@ -220,21 +220,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   };
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-1 select-none">
+    <div className="space-y-1.5 select-none">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5 text-[8px] font-bold text-muted-foreground uppercase tracking-wider">
-          {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-orange-400" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
-          {type === 'morning' ? 'Turno 1 (08:00 - 13:00)' : 'Turno 2 (14:00 - 20:00)'}
+        <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
+          {type === 'morning' ? <Sunrise className="h-3 w-3 text-orange-400" /> : <Sunset className="h-3 w-3 text-blue-400" />}
+          {type === 'morning' ? 'Turno 1 (08h - 13h)' : 'Turno 2 (14h - 20h)'}
         </div>
         {type === 'morning' && (
-          <div className="flex items-center gap-1 text-[7px] font-black text-primary/60 uppercase">
-            <Coffee className="h-2.5 w-2.5" />
-            Intervalo 13h - 14h
+          <div className="flex items-center gap-1.5 text-[8px] font-black text-primary/70 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+            <Coffee className="h-3 w-3" />
+            Intervalo Almoço
           </div>
         )}
       </div>
       <div className={cn(
-        "flex h-11 items-stretch border border-border/60 rounded-lg overflow-hidden bg-black/40 shadow-inner backdrop-blur-sm",
+        "flex h-12 items-stretch border-2 border-border/40 rounded-xl overflow-hidden bg-black shadow-2xl backdrop-blur-md",
         (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((time, index) => {
@@ -267,24 +267,26 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-150 border-r border-white/5 last:border-r-0",
+                "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r border-white/10 last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
-                  ? (visualEquipe === 2 ? "bg-emerald-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]" : "bg-orange-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]") 
-                  : "bg-transparent hover:bg-white/5",
-                isPast && "opacity-20 grayscale-[0.8] pointer-events-none"
+                  ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-orange-500") 
+                  : "bg-black/80 hover:bg-white/10",
+                isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
                 {isHourStart && (
                   <div className={cn(
-                    "text-[8px] font-black absolute inset-0 flex items-center justify-center tracking-tighter",
-                    visualOccupied ? "text-white/95 drop-shadow-md" : "text-muted-foreground/40"
+                    "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter drop-shadow-md transition-colors",
+                    visualOccupied ? "text-white scale-110" : "text-white/40"
                   )}>
                     {time}
                   </div>
                 )}
               </div>
+              {/* Indicador sutil de 15 min */}
+              {!isHourStart && !visualOccupied && <div className="absolute inset-0 border-r border-white/[0.03] pointer-events-none" />}
             </div>
           );
         })}
@@ -293,43 +295,50 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   );
 
   return (
-    <div className={cn("bg-card border rounded-xl p-3 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", isLoading && "opacity-50", compact && "p-2")}>
+    <div className={cn("bg-card border-2 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/20 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary/40 rounded-lg text-primary font-bold text-xs select-none">{initials}</div>
-          <h3 className="font-bold text-sm text-foreground tracking-tight uppercase">{technician.name}</h3>
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center bg-primary/10 border-2 border-primary/30 rounded-xl text-primary font-black text-sm select-none shadow-inner">{initials}</div>
+          <div className="space-y-0.5">
+            <h3 className="font-black text-base text-foreground tracking-tight uppercase">{technician.name}</h3>
+            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">Status: Operacional</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           {isEditable && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} 
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
-                  activeEquipe === 1 ? "bg-orange-600/30 border-orange-500 ring-1 ring-orange-500/50" : "bg-muted/30 border-transparent", 
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
+                  "flex items-center gap-2.5 px-4 py-2 rounded-xl border-2 transition-all shadow-sm", 
+                  activeEquipe === 1 
+                    ? "bg-orange-500 border-orange-400 text-white ring-4 ring-orange-500/20 scale-105" 
+                    : "bg-muted/40 border-transparent hover:bg-muted/60", 
+                  isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50"
                 )}
               >
-                <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", activeEquipe === 1 ? "bg-orange-500" : "bg-muted")} />
-                <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
+                <div className={cn("w-3 h-3 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]", activeEquipe === 1 ? "bg-white" : "bg-orange-500")} />
+                <span className={cn("text-xs font-black uppercase tracking-widest", activeEquipe === 1 ? "text-white" : "text-muted-foreground")}>E1</span>
               </button>
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} 
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
-                  activeEquipe === 2 ? "bg-emerald-600/30 border-emerald-500 ring-1 ring-emerald-500/50" : "bg-muted/30 border-transparent", 
-                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
+                  "flex items-center gap-2.5 px-4 py-2 rounded-xl border-2 transition-all shadow-sm", 
+                  activeEquipe === 2 
+                    ? "bg-emerald-500 border-emerald-400 text-white ring-4 ring-emerald-500/20 scale-105" 
+                    : "bg-muted/40 border-transparent hover:bg-muted/60", 
+                  isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50"
                 )}
               >
-                <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", activeEquipe === 2 ? "bg-emerald-500" : "bg-muted")} />
-                <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
+                <div className={cn("w-3 h-3 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]", activeEquipe === 2 ? "bg-white" : "bg-emerald-500")} />
+                <span className={cn("text-xs font-black uppercase tracking-widest", activeEquipe === 2 ? "text-white" : "text-muted-foreground")}>E2</span>
               </button>
-              <div className="w-px h-6 bg-border mx-2" />
+              <div className="w-px h-8 bg-border/50 mx-2" />
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={(e) => { e.stopPropagation(); handleClearAll(); }} 
-                className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest"
+                className="h-10 text-[10px] gap-2 text-muted-foreground hover:text-white hover:bg-destructive uppercase font-black tracking-[0.2em] rounded-xl px-4 transition-all"
               >
                 <Trash2 className="h-4 w-4" /> LIMPAR
               </Button>
@@ -337,18 +346,18 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           )}
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
-      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/10">
-        <div className="flex gap-4">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-orange-600" /><span>Equipe 1</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-600" /><span>Equipe 2</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm border border-white/20" /><span>Livre</span></div>
+      <div className="flex justify-between items-center pt-4 text-[10px] font-black text-muted-foreground border-t-2 border-border/10">
+        <div className="flex gap-6 uppercase tracking-widest">
+          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-orange-500 shadow-sm" /><span>Equipe 1</span></div>
+          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-emerald-500 shadow-sm" /><span>Equipe 2</span></div>
+          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-black border-2 border-white/20 shadow-sm" /><span>Disponível</span></div>
         </div>
-        <p className="font-black text-[8px] uppercase tracking-widest text-primary/60">
-          {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA OCUPAR") : "MODO VISUALIZAÇÃO"}
+        <p className="font-black text-[9px] uppercase tracking-[0.3em] text-primary/80 animate-pulse">
+          {isEditable ? (activeEquipe === null ? "Selecione uma equipe para marcar" : "Pressione e arraste na barra") : "Modo de Visualização (TAC)"}
         </p>
       </div>
     </div>
