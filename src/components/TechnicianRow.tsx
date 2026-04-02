@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Trash2, Sunrise, Sunset } from "lucide-react";
+import { Trash2, Sunrise, Sunset, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -35,7 +35,8 @@ interface SlotDefinition {
   key: string;
   label: string;
   isHourStart: boolean;
-  minute: number;
+  h: number;
+  m: number;
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
@@ -69,9 +70,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      setCurrentTime({ h: hours, m: minutes });
+      setCurrentTime({ h: now.getHours(), m: now.getMinutes() });
     };
     updateTime();
     const interval = setInterval(updateTime, 60000);
@@ -92,6 +91,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return map;
   }, [blocksData]);
 
+  const isPast = useCallback((h: number, m: number) => {
+    if (!currentTime) return false;
+    if (h < currentTime.h) return true;
+    if (h === currentTime.h && m < currentTime.m) return true;
+    return false;
+  }, [currentTime]);
+
   const baseSlots = useMemo(() => {
     const morning: SlotDefinition[] = [];
     const afternoon: SlotDefinition[] = [];
@@ -99,13 +105,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const generateShift = (start: number, end: number, arr: SlotDefinition[]) => {
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
-        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true, minute: 0 });
-        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false, minute: 15 });
-        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
-        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
+        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true, h, m: 0 });
+        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false, h, m: 15 });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, h, m: 30 });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, h, m: 45 });
       }
       const lastH = end.toString().padStart(2, "0");
-      arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, minute: 0 });
+      arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
     generateShift(8, 13, morning);
@@ -116,56 +122,47 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const filteredSlots = useMemo(() => {
     if (!currentTime) return baseSlots;
 
-    const filterShift = (shift: SlotDefinition[], isMorning: boolean) => {
-      // Se for manhã e já passou das 13:00, o turno da manhã some (será tratado no render)
-      // Se for tarde, mostramos todos conforme solicitado "mostre todos os horários da tarde"
-      if (!isMorning) return shift;
-
-      // Para a manhã, mostramos a partir de 1 hora atrás
-      const thresholdH = currentTime.h - 1;
-      const filtered = shift.filter(slot => {
-        const h = parseInt(slot.time.split(':')[0]);
-        return h >= thresholdH;
-      });
-
-      return filtered.length > 0 ? filtered : shift.slice(-5);
+    const filterMorning = (shift: SlotDefinition[]) => {
+      if (currentTime.h >= 13) return []; // Oculta manhã após 12:59
+      const thresholdH = Math.max(8, currentTime.h - 1);
+      return shift.filter(slot => slot.h >= thresholdH);
     };
 
     return {
-      morning: filterShift(baseSlots.morning, true),
-      afternoon: filterShift(baseSlots.afternoon, false)
+      morning: filterMorning(baseSlots.morning),
+      afternoon: baseSlots.afternoon // Tarde sempre visível integralmente
     };
   }, [baseSlots, currentTime]);
 
   const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
 
-    const keysToProcess = new Set(slotKeys);
+    const keysToProcess = new Set<string>();
 
     slotKeys.forEach(k => {
       const [hStr, mStr] = k.split(':');
       const h = parseInt(hStr);
       const m = parseInt(mStr);
 
+      if (isPast(h, m)) return;
+
+      keysToProcess.add(k);
+
       if (action === 'occupy') {
-        // Regra: 15 marca 00 atual, 45 marca 00 seguinte
         if (m === 15) keysToProcess.add(`${hStr}:00`);
         if (m === 45) {
           const nextH = (h + 1).toString().padStart(2, '0');
           keysToProcess.add(`${nextH}:00`);
         }
       } else {
-        // Proteção na desmarcação
         if (m === 15) {
           const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
           const isPrev45Occupied = occupiedSlotsMap[prevHour45]?.e1 || occupiedSlotsMap[prevHour45]?.e2;
-          // Só desmarca o :00 se o :45 da hora anterior não estiver ocupando ele
           if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
         }
         if (m === 45) {
           const nextHour15 = (h + 1).toString().padStart(2, '0') + ':15';
           const isNext15Occupied = occupiedSlotsMap[nextHour15]?.e1 || occupiedSlotsMap[nextHour15]?.e2;
-          // Só desmarca o :00 seguinte se o :15 da hora seguinte não estiver ocupando ele
           const nextHStr = (h + 1).toString().padStart(2, '0');
           if (!isNext15Occupied) keysToProcess.add(`${nextHStr}:00`);
         }
@@ -174,7 +171,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     keysToProcess.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
-      
       if (action === 'occupy' && activeEquipe !== null) {
         const update: any = {
           technicianId: technician.id,
@@ -200,7 +196,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         }
       }
     });
-  }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap]);
+  }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap, isPast]);
 
   const handleMouseUp = useCallback(() => {
     if (dragStart !== null && dragEnd !== null && dragAction !== null) {
@@ -225,13 +221,16 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
+    const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
+    const slot = targetSlots[index];
+
+    if (isPast(slot.h, slot.m)) return;
+
     if (!isEditable) {
       toast({ variant: "destructive", title: "Acesso Restrito", description: "Apenas TAC pode editar." });
       return;
     }
     
-    const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
-    const slot = targetSlots[index];
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
     if (activeEquipe === null) {
@@ -264,8 +263,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     if (window.confirm(`LIMPAR TODOS os horários de ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
-        snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
-        toast({ title: "Agenda Limpa" });
+        snapshot.docs.forEach(d => {
+          const timeKey = d.id;
+          const [h, m] = timeKey.split(':').map(Number);
+          if (!isPast(h, m)) deleteDocumentNonBlocking(d.ref);
+        });
+        toast({ title: "Agenda Limpa (Horários Futuros)" });
       } catch (e) {
         toast({ variant: "destructive", title: "Erro ao limpar" });
       }
@@ -289,68 +292,77 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
   }, [currentStatus]);
 
-  const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => (
-    <div className="space-y-2 select-none flex-1">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
-          {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-600" /> : <Sunset className="h-3 w-3 text-blue-400" />}
-          {type === 'morning' ? 'Turno 1 (08h - 13h)' : 'Turno 2 (14h - 20h)'}
+  const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => {
+    if (timeSlots.length === 0) return null;
+    return (
+      <div className="space-y-2 select-none flex-1">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
+            {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-600" /> : <Sunset className="h-3 w-3 text-blue-400" />}
+            {type === 'morning' ? 'Turno 1 (Manhã)' : 'Turno 2 (Tarde)'}
+          </div>
         </div>
-      </div>
-      <div className={cn("flex h-12 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl", (!isEditable || isLoading) && "opacity-75")}>
-        {timeSlots.map((slot, index) => {
-          const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
-          const isInDragRange = dragStart !== null && dragEnd !== null && dragStart.type === type && dragEnd.type === type && index >= Math.min(dragStart.index, dragEnd.index) && index <= Math.max(dragStart.index, dragEnd.index);
+        <div className={cn("flex h-12 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl", (!isEditable || isLoading) && "opacity-75")}>
+          {timeSlots.map((slot, index) => {
+            const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
+            const isSlotPast = isPast(slot.h, slot.m);
+            const isInDragRange = dragStart !== null && dragEnd !== null && dragStart.type === type && dragEnd.type === type && index >= Math.min(dragStart.index, dragEnd.index) && index <= Math.max(dragStart.index, dragEnd.index);
 
-          let visualE1 = existing.e1;
-          let visualE2 = existing.e2;
+            let visualE1 = existing.e1;
+            let visualE2 = existing.e2;
 
-          if (isInDragRange && dragAction) {
-            if (activeEquipe === 1) visualE1 = dragAction === 'occupy';
-            else if (activeEquipe === 2) visualE2 = dragAction === 'occupy';
-            else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
-          }
+            if (isInDragRange && dragAction) {
+              if (activeEquipe === 1) visualE1 = dragAction === 'occupy';
+              else if (activeEquipe === 2) visualE2 = dragAction === 'occupy';
+              else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
+            }
 
-          const hasBoth = visualE1 && visualE2;
+            const hasBoth = visualE1 && visualE2;
 
-          return (
-            <div
-              key={slot.key}
-              onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
-              onMouseEnter={() => handleMouseEnter(type, index)}
-              className={cn(
-                "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5 last:border-r-0",
-                isEditable ? "cursor-pointer" : "cursor-default",
-                !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5"
-              )}
-            >
-              <div className="flex flex-col h-full w-full overflow-hidden">
-                {visualE1 && (
-                  <div className={cn(
-                    "bg-red-600 transition-all duration-300",
-                    hasBoth ? "h-1/2" : "h-full"
-                  )} />
+            return (
+              <div
+                key={slot.key}
+                onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
+                onMouseEnter={() => handleMouseEnter(type, index)}
+                className={cn(
+                  "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5 last:border-r-0",
+                  isSlotPast ? "opacity-30 cursor-not-allowed bg-zinc-900" : (isEditable ? "cursor-pointer" : "cursor-default"),
+                  !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5"
                 )}
-                {visualE2 && (
-                  <div className={cn(
-                    "bg-emerald-500 transition-all duration-300",
-                    hasBoth ? "h-1/2" : "h-full"
-                  )} />
+              >
+                <div className="flex flex-col h-full w-full overflow-hidden">
+                  {visualE1 && (
+                    <div className={cn(
+                      "bg-red-600 transition-all duration-300",
+                      hasBoth ? "h-1/2" : "h-full"
+                    )} />
+                  )}
+                  {visualE2 && (
+                    <div className={cn(
+                      "bg-emerald-500 transition-all duration-300",
+                      hasBoth ? "h-1/2" : "h-full"
+                    )} />
+                  )}
+                </div>
+                
+                <span className={cn(
+                  "absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-tighter uppercase pointer-events-none",
+                  (visualE1 || visualE2) ? "text-white drop-shadow-md" : "text-muted-foreground/60"
+                )}>
+                  {slot.label}
+                </span>
+                {isSlotPast && (
+                  <div className="absolute top-1 right-1 opacity-20">
+                    <Lock className="h-2 w-2" />
+                  </div>
                 )}
               </div>
-              
-              <span className={cn(
-                "absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-tighter uppercase pointer-events-none",
-                (visualE1 || visualE2) ? "text-white drop-shadow-md" : "text-muted-foreground/60"
-              )}>
-                {slot.label}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className={cn("bg-zinc-900/60 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/10 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
@@ -387,7 +399,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       <div className="flex flex-col md:flex-row gap-6">
-        {(!currentTime || currentTime.h < 13) && renderSlotsBar('morning', filteredSlots.morning)}
+        {renderSlotsBar('morning', filteredSlots.morning)}
         {renderSlotsBar('afternoon', filteredSlots.afternoon)}
       </div>
       <div className="flex justify-between items-center pt-4 text-[10px] font-black text-white border-t border-white/5">
