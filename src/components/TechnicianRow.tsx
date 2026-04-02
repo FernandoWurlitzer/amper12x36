@@ -5,7 +5,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
-import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc, serverTimestamp, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,10 @@ interface TechnicianProfile {
   status?: "OPERACIONAL" | "INDISPONÍVEL" | "SOBREAVISO";
   name?: string;
 }
+
+type SlotDefinition = 
+  | { type: 'header'; label: string; key: string; targetSlot: string }
+  | { type: 'slot'; time: string; key: string; label: string };
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
@@ -70,18 +74,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       } else {
         setVisibleShift('afternoon');
       }
-
-      if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
-        getDocs(scheduledBlocksRef).then(snapshot => {
-          snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
-        }).catch(() => {});
-      }
     };
 
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
-  }, [firestore, scheduledBlocksRef, isEditable]);
+  }, []);
 
   const initials = useMemo(() => {
     return technician.name
@@ -103,27 +101,30 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [blocksData]);
 
   const slots = useMemo(() => {
-    const morning = [];
-    const afternoon = [];
-    for (let h = 8; h < 13; h++) {
-      morning.push(`${h.toString().padStart(2, "0")}:00`);
-      morning.push(`${h.toString().padStart(2, "0")}:15`);
-      morning.push(`${h.toString().padStart(2, "0")}:30`);
-      morning.push(`${h.toString().padStart(2, "0")}:45`);
-    }
-    for (let h = 14; h < 20; h++) {
-      afternoon.push(`${h.toString().padStart(2, "0")}:00`);
-      afternoon.push(`${h.toString().padStart(2, "0")}:15`);
-      afternoon.push(`${h.toString().padStart(2, "0")}:30`);
-      afternoon.push(`${h.toString().padStart(2, "0")}:45`);
-    }
+    const morning: SlotDefinition[] = [];
+    const afternoon: SlotDefinition[] = [];
+
+    const generateShift = (start: number, end: number, arr: SlotDefinition[]) => {
+      for (let h = start; h < end; h++) {
+        const hStr = h.toString().padStart(2, "0");
+        arr.push({ type: 'header', label: `${h}h`, key: `h-${h}`, targetSlot: `${hStr}:00` });
+        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: '' });
+        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: '15' });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: '30' });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: '45' });
+      }
+    };
+
+    generateShift(8, 13, morning);
+    generateShift(14, 20, afternoon);
+
     return { morning, afternoon };
   }, []);
 
-  const handleToggleSlots = useCallback((slotIds: string[], action: 'occupy' | 'free') => {
+  const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
 
-    slotIds.forEach(time => {
+    slotKeys.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
       if (action === 'occupy' && activeEquipe !== null) {
         setDocumentNonBlocking(docRef, {
@@ -146,8 +147,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const min = Math.min(dragStart.index, dragEnd.index);
       const max = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
-      const selectedRange = targetSlots.slice(min, max + 1);
-      handleToggleSlots(selectedRange, dragAction);
+      
+      const selectedKeys = targetSlots
+        .slice(min, max + 1)
+        .filter(s => s.type === 'slot')
+        .map(s => (s as any).key);
+
+      handleToggleSlots(selectedKeys, dragAction);
     }
     setDragStart(null);
     setDragEnd(null);
@@ -171,8 +177,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       return;
     }
     
-    const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
-    const existingEquipe = occupiedSlotsMap[time];
+    const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
+    const slot = targetSlots[index];
+    
+    if (slot.type === 'header') return;
+
+    const existingEquipe = occupiedSlotsMap[slot.key];
     const isOccupied = !!existingEquipe;
 
     if (activeEquipe === null) {
@@ -209,10 +219,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     if (confirm(`Deseja LIMPAR todos os horários da cidade ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
-        if (snapshot.empty) {
-          toast({ title: "Agenda Vazia", description: "Não há horários para limpar." });
-          return;
-        }
+        if (snapshot.empty) return;
         snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
         toast({ title: "Agenda Limpa", description: `Todos os horários de ${technician.name} foram liberados.` });
       } catch (e) {
@@ -233,11 +240,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       updatedAt: serverTimestamp(),
       name: technician.name
     }, { merge: true });
-    
-    toast({
-      title: "Status Atualizado",
-      description: `${technician.name} está agora ${nextStatus}.`,
-    });
   };
 
   const statusColor = useMemo(() => {
@@ -249,7 +251,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
   }, [currentStatus]);
 
-  const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
+  const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => (
     <div className="space-y-2 select-none">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
@@ -261,20 +263,30 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         "flex h-12 items-stretch border border-white/10 rounded-xl overflow-hidden bg-zinc-900 shadow-2xl backdrop-blur-md",
         (!isEditable || isLoading) && "opacity-75"
       )}>
-        {timeSlots.map((time, index) => {
-          const equipeId = occupiedSlotsMap[time];
-          const isOccupied = !!equipeId;
-          const isHourStart = time.endsWith(":00");
-          const [slotH, slotM] = time.split(":").map(Number);
-          const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
-          
-          const [h, m] = time.split(":");
-          let displayLabel;
-          if (isHourStart) {
-            displayLabel = `${h}-${h}:15h`;
-          } else {
-            displayLabel = m;
+        {timeSlots.map((slot, index) => {
+          if (slot.type === 'header') {
+            const nextSlotEquipe = occupiedSlotsMap[slot.targetSlot];
+            const isAutoMarked = !!nextSlotEquipe;
+            
+            return (
+              <div
+                key={slot.key}
+                className={cn(
+                  "flex-[0.5] flex items-center justify-center border-r border-white/10 text-[9px] font-black uppercase tracking-tighter transition-colors pointer-events-none",
+                  isAutoMarked 
+                    ? (nextSlotEquipe === 2 ? "bg-emerald-500 text-white" : "bg-red-600 text-white") 
+                    : "bg-zinc-800/60 text-muted-foreground"
+                )}
+              >
+                {slot.label}
+              </div>
+            );
           }
+
+          const equipeId = occupiedSlotsMap[slot.key];
+          const isOccupied = !!equipeId;
+          const [slotH, slotM] = slot.time.split(":").map(Number);
+          const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
@@ -295,13 +307,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
           return (
             <div
-              key={time}
+              key={slot.key}
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex-1 flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-l-[3px] border-white/60" : "border-l-[1.5px] border-white/20",
-                "first:border-l-0",
+                "group relative flex-1 flex items-center justify-center transition-all duration-75 border-r border-white/5 last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-red-600") 
@@ -309,15 +319,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
-              <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
-                <div className={cn(
-                  "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
-                  "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]",
-                  isHourStart ? "text-[10px]" : "text-[9px] opacity-70"
-                )}>
-                  {displayLabel}
-                </div>
-              </div>
+              <span className={cn(
+                "text-[9px] font-black tracking-tighter drop-shadow-sm",
+                visualOccupied ? "text-white" : "text-muted-foreground/40"
+              )}>
+                {slot.label}
+              </span>
             </div>
           );
         })}
@@ -343,7 +350,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             >
               <span className="text-white">STATUS:</span>
               <span className={cn("font-black", statusColor)}>{currentStatus}</span>
-              {isEditable && <div className="h-1 w-1 bg-white/20 rounded-full" />}
             </div>
           </div>
         </div>
@@ -400,7 +406,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Disponível</span></div>
         </div>
         <p className="font-black text-[9px] uppercase tracking-[0.3em] text-white animate-pulse">
-          {isEditable ? (activeEquipe === null ? "SELECIONE UMA EQUIPE PARA MARCAR" : "Pressione e arraste na barra") : "Modo de Visualização (TAC)"}
+          {isEditable ? (activeEquipe === null ? "SELECIONE UMA EQUIPE PARA MARCAR" : "Pressione e arraste na barra") : "Modo de Visualização"}
         </p>
       </div>
     </div>
