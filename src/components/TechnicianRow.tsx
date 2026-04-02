@@ -103,9 +103,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
         arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true, minute: 0 });
-        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `:15`, isHourStart: false, minute: 15 });
-        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `:30`, isHourStart: false, minute: 30 });
-        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `:45`, isHourStart: false, minute: 45 });
+        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false, minute: 15 });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
       }
       const lastH = end.toString().padStart(2, "0");
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, minute: 0 });
@@ -224,7 +224,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const statuses: Array<TechnicianProfile["status"]> = ["OPERACIONAL", "INDISPONÍVEL", "SOBREAVISO"];
     const currentIndex = statuses.indexOf(currentStatus as any);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-    setDocumentNonBlocking(techProfileRef, { status: nextStatus, name: technician.name }, { merge: true });
+    setDocumentNonBlocking(techProfileRef, { status: nextStatus, name: technician.name, updatedAt: serverTimestamp(), markedByUserId: user?.uid }, { merge: true });
   };
 
   const statusColor = useMemo(() => {
