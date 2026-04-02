@@ -51,12 +51,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
+      // Até 12:59 mostra as duas barras, depois somente a tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
+      // Limpeza automática às 20:59
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -206,7 +208,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   };
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-1.5 select-none">
+    <div className="space-y-2 select-none">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
           {type === 'morning' ? <Sunrise className="h-3 w-3 text-orange-400" /> : <Sunset className="h-3 w-3 text-blue-400" />}
@@ -214,7 +216,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       <div className={cn(
-        "flex h-12 items-stretch border border-white/10 rounded-xl overflow-hidden bg-zinc-900/50 shadow-2xl backdrop-blur-md",
+        "flex h-12 items-stretch border border-white/20 rounded-xl overflow-hidden bg-zinc-900 shadow-2xl backdrop-blur-md",
         (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((time, index) => {
@@ -247,11 +249,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r border-white/5 last:border-r-0",
+                "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r",
+                isHourStart ? "border-white/25" : "border-white/10",
+                "last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-orange-500") 
-                  : "bg-zinc-800/20 hover:bg-white/5",
+                  : "bg-transparent hover:bg-white/5",
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
@@ -259,7 +263,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 {isHourStart && (
                   <div className={cn(
                     "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors",
-                    visualOccupied ? "text-white drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]" : "text-white/30"
+                    visualOccupied ? "text-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]" : "text-white/40"
                   )}>
                     {time}
                   </div>
@@ -324,7 +328,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           )}
         </div>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
