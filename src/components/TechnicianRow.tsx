@@ -268,8 +268,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const [slotH, slotM] = time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
           
-          const minutes = time.split(":")[1];
-          let displayLabel = isHourStart ? time : minutes;
+          const [h, m] = time.split(":");
+          let displayLabel;
+          if (isHourStart) {
+            displayLabel = `${h}-${h}:15h`;
+          } else {
+            displayLabel = m;
+          }
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
@@ -295,7 +300,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group relative flex-1 flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-l-[4px] border-white/50" : "border-l-2 border-white/20",
+                isHourStart ? "border-l-[3px] border-white/60" : "border-l-[1.5px] border-white/20",
                 "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
@@ -308,7 +313,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 <div className={cn(
                   "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
                   "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]",
-                  isHourStart ? "text-[11px]" : "text-[9px] opacity-70"
+                  isHourStart ? "text-[10px]" : "text-[9px] opacity-70"
                 )}>
                   {displayLabel}
                 </div>
