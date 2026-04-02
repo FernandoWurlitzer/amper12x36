@@ -35,6 +35,7 @@ interface SlotDefinition {
   key: string;
   label: string;
   isHourStart: boolean;
+  minute: number;
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
@@ -101,10 +102,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const generateShift = (start: number, end: number, arr: SlotDefinition[]) => {
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
-        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true });
-        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false });
-        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false });
-        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false });
+        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: `${hStr}:00`, isHourStart: true, minute: 0 });
+        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: `15`, isHourStart: false, minute: 15 });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
       }
     };
 
@@ -150,12 +151,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const max = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
-      const selectedKeys: string[] = [];
-      targetSlots.slice(min, max + 1).forEach(s => {
-        selectedKeys.push(s.key);
+      const selectedKeysSet = new Set<string>();
+      targetSlots.slice(min, max + 1).forEach((s, idx) => {
+        selectedKeysSet.add(s.key);
+        // Regra de negócio: Se marcar 15 ou 45, marca também o respectivo 00 ou 30
+        if (dragAction === 'occupy') {
+          if (s.minute === 15) {
+            const hStr = s.time.split(":")[0];
+            selectedKeysSet.add(`${hStr}:00`);
+          } else if (s.minute === 45) {
+            const hStr = s.time.split(":")[0];
+            selectedKeysSet.add(`${hStr}:30`);
+          }
+        }
       });
 
-      handleToggleSlots(selectedKeys, dragAction);
+      handleToggleSlots(Array.from(selectedKeysSet), dragAction);
     }
     setDragStart(null);
     setDragEnd(null);
@@ -272,8 +283,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
-              {visualE1 && <div className={cn("flex-1 bg-red-600", !visualE2 ? "h-full" : "h-1/2")} />}
-              {visualE2 && <div className={cn("flex-1 bg-emerald-500", !visualE1 ? "h-full" : "h-1/2")} />}
+              <div className="flex flex-col h-full w-full">
+                {visualE1 && <div className={cn("bg-red-600 transition-all", visualE2 ? "h-1/2" : "h-full")} />}
+                {visualE2 && <div className={cn("bg-emerald-500 transition-all", visualE1 ? "h-1/2" : "h-full")} />}
+              </div>
               
               <span className={cn(
                 "absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-tighter uppercase pointer-events-none",
