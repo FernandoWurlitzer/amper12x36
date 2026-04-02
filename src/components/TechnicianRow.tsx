@@ -138,6 +138,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     if (!isEditable || !user || !firestore) return;
 
     const keysToProcess = new Set<string>();
+    const isBatch = slotKeys.length > 1;
 
     slotKeys.forEach(k => {
       const [hStr, mStr] = k.split(':');
@@ -149,22 +150,28 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       keysToProcess.add(k);
 
       if (action === 'occupy') {
-        if (m === 15) keysToProcess.add(`${hStr}:00`);
-        if (m === 45) {
-          const nextHStr = (h + 1).toString().padStart(2, '0');
-          keysToProcess.add(`${nextHStr}:00`);
+        // Only apply automatic hour linking for single slot selection
+        if (!isBatch) {
+          if (m === 15) keysToProcess.add(`${hStr}:00`);
+          if (m === 45) {
+            const nextHStr = (h + 1).toString().padStart(2, '0');
+            keysToProcess.add(`${nextHStr}:00`);
+          }
         }
       } else {
-        if (m === 15) {
-          const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
-          const isPrev45Occupied = occupiedSlotsMap[prevHour45]?.e1 || occupiedSlotsMap[prevHour45]?.e2;
-          if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
-        }
-        if (m === 45) {
-          const nextHour15 = (h + 1).toString().padStart(2, '0') + ':15';
-          const isNext15Occupied = occupiedSlotsMap[nextHour15]?.e1 || occupiedSlotsMap[nextHour15]?.e2;
-          const nextHStr = (h + 1).toString().padStart(2, '0');
-          if (!isNext15Occupied) keysToProcess.add(`${nextHStr}:00`);
+        // Only apply automatic hour unlinking for single slot selection
+        if (!isBatch) {
+          if (m === 15) {
+            const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
+            const isPrev45Occupied = occupiedSlotsMap[prevHour45]?.e1 || occupiedSlotsMap[prevHour45]?.e2;
+            if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
+          }
+          if (m === 45) {
+            const nextHour15 = (h + 1).toString().padStart(2, '0') + ':15';
+            const isNext15Occupied = occupiedSlotsMap[nextHour15]?.e1 || occupiedSlotsMap[nextHour15]?.e2;
+            const nextHStr = (h + 1).toString().padStart(2, '0');
+            if (!isNext15Occupied) keysToProcess.add(`${nextHStr}:00`);
+          }
         }
       }
     });
