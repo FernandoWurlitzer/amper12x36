@@ -149,21 +149,59 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleMouseUp = useCallback(() => {
     if (dragStart !== null && dragEnd !== null && dragAction !== null) {
       const type = dragStart.type;
-      const min = Math.min(dragStart.index, dragEnd.index);
-      const max = Math.max(dragStart.index, dragEnd.index);
+      const minIdx = Math.min(dragStart.index, dragEnd.index);
+      const maxIdx = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
+      const rangeKeys = new Set<string>();
+      targetSlots.slice(minIdx, maxIdx + 1).forEach(s => rangeKeys.add(s.key));
+
       const keysToUpdate = new Set<string>();
-      targetSlots.slice(min, max + 1).forEach((s) => {
+      targetSlots.slice(minIdx, maxIdx + 1).forEach((s) => {
         keysToUpdate.add(s.key);
         
-        if (s.minute === 15) {
-          const hStr = s.time.split(":")[0];
-          keysToUpdate.add(`${hStr}:00`);
-        } else if (s.minute === 45) {
-          const hStr = s.time.split(":")[0];
-          const nextHour = (parseInt(hStr) + 1).toString().padStart(2, '0');
-          keysToUpdate.add(`${nextHour}:00`);
+        if (dragAction === 'occupy') {
+          if (s.minute === 15) {
+            const hStr = s.time.split(":")[0];
+            keysToUpdate.add(`${hStr}:00`);
+          } else if (s.minute === 45) {
+            const hStr = s.time.split(":")[0];
+            const nextH = (parseInt(hStr) + 1).toString().padStart(2, '0');
+            keysToUpdate.add(`${nextH}:00`);
+          }
+        } else {
+          // dragAction === 'free'
+          if (s.minute === 15) {
+            const hStr = s.time.split(":")[0];
+            const prevH = (parseInt(hStr) - 1).toString().padStart(2, '0');
+            const prev45Key = `${prevH}:45`;
+            const prev45 = occupiedSlotsMap[prev45Key] || { e1: false, e2: false };
+            
+            let isPrev45Active = false;
+            if (activeEquipe === 1) isPrev45Active = prev45.e1;
+            else if (activeEquipe === 2) isPrev45Active = prev45.e2;
+            else isPrev45Active = prev45.e1 || prev45.e2;
+
+            // Só desmarca a hora cheia se o 45 anterior NÃO estiver marcado E NÃO estiver no range sendo desmarcado agora
+            if (!isPrev45Active && !rangeKeys.has(prev45Key)) {
+              keysToUpdate.add(`${hStr}:00`);
+            }
+          } else if (s.minute === 45) {
+            const hStr = s.time.split(":")[0];
+            const nextH = (parseInt(hStr) + 1).toString().padStart(2, '0');
+            const next15Key = `${nextH}:15`;
+            const next15 = occupiedSlotsMap[next15Key] || { e1: false, e2: false };
+            
+            let isNext15Active = false;
+            if (activeEquipe === 1) isNext15Active = next15.e1;
+            else if (activeEquipe === 2) isNext15Active = next15.e2;
+            else isNext15Active = next15.e1 || next15.e2;
+
+            // Só desmarca a hora cheia seguinte se o 15 daquela hora NÃO estiver marcado E NÃO estiver no range sendo desmarcado agora
+            if (!isNext15Active && !rangeKeys.has(next15Key)) {
+              keysToUpdate.add(`${nextH}:00`);
+            }
+          }
         }
       });
 
@@ -172,7 +210,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
+  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots, occupiedSlotsMap, activeEquipe]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -271,7 +309,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
           }
 
-          // Verificação para manter a borda grossa apenas no fechamento final do turno
           const isShiftEnd = index === timeSlots.length - 1;
 
           return (
