@@ -65,14 +65,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Visibilidade das barras conforme solicitado
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
-      // Limpeza automática ao final do dia (20:59)
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -273,8 +271,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           if (isHourStart) {
             displayLabel = time;
           } else {
-            // Rótulos de minutos conforme solicitado
-            if (minutes === "15") displayLabel = "15";
+            // Rótulos de minutos: apenas 30 e 45 conforme solicitado
             if (minutes === "30") displayLabel = "30";
             if (minutes === "45") displayLabel = "45";
           }
@@ -303,8 +300,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-75",
-                // Barra grossa nas horas cheias conforme solicitado
-                isHourStart ? "border-l-4 border-white/40" : "border-l border-white/15",
+                isHourStart ? "border-l-4 border-white/40" : "border-l-2 border-white/15",
                 "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
