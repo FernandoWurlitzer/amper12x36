@@ -116,21 +116,24 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const filteredSlots = useMemo(() => {
     if (!currentTime) return baseSlots;
 
-    const filterShift = (shift: SlotDefinition[]) => {
-      const remaining = shift.filter(slot => {
-        const [h, m] = slot.time.split(':').map(Number);
-        return h > currentTime.h || (h === currentTime.h && m >= currentTime.m);
+    const filterShift = (shift: SlotDefinition[], isMorning: boolean) => {
+      // Se for manhã e já passou das 13:00, o turno da manhã some (será tratado no render)
+      // Se for tarde, mostramos todos conforme solicitado "mostre todos os horários da tarde"
+      if (!isMorning) return shift;
+
+      // Para a manhã, mostramos a partir de 1 hora atrás
+      const thresholdH = currentTime.h - 1;
+      const filtered = shift.filter(slot => {
+        const h = parseInt(slot.time.split(':')[0]);
+        return h >= thresholdH;
       });
-      
-      if (remaining.length === 0) {
-        return shift.slice(-5); // Mantém a última hora do turno como referência
-      }
-      return remaining;
+
+      return filtered.length > 0 ? filtered : shift.slice(-5);
     };
 
     return {
-      morning: filterShift(baseSlots.morning),
-      afternoon: filterShift(baseSlots.afternoon)
+      morning: filterShift(baseSlots.morning, true),
+      afternoon: filterShift(baseSlots.afternoon, false)
     };
   }, [baseSlots, currentTime]);
 
@@ -145,21 +148,26 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const m = parseInt(mStr);
 
       if (action === 'occupy') {
+        // Regra: 15 marca 00 atual, 45 marca 00 seguinte
         if (m === 15) keysToProcess.add(`${hStr}:00`);
         if (m === 45) {
           const nextH = (h + 1).toString().padStart(2, '0');
           keysToProcess.add(`${nextH}:00`);
         }
       } else {
+        // Proteção na desmarcação
         if (m === 15) {
-          const prevH = (h - 1).toString().padStart(2, '0');
-          const isPrev45Occupied = occupiedSlotsMap[`${prevH}:45`]?.e1 || occupiedSlotsMap[`${prevH}:45`]?.e2;
+          const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
+          const isPrev45Occupied = occupiedSlotsMap[prevHour45]?.e1 || occupiedSlotsMap[prevHour45]?.e2;
+          // Só desmarca o :00 se o :45 da hora anterior não estiver ocupando ele
           if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
         }
         if (m === 45) {
-          const nextH = (h + 1).toString().padStart(2, '0');
-          const isNext15Occupied = occupiedSlotsMap[`${nextH}:15`]?.e1 || occupiedSlotsMap[`${nextH}:15`]?.e2;
-          if (!isNext15Occupied) keysToProcess.add(`${nextH}:00`);
+          const nextHour15 = (h + 1).toString().padStart(2, '0') + ':15';
+          const isNext15Occupied = occupiedSlotsMap[nextHour15]?.e1 || occupiedSlotsMap[nextHour15]?.e2;
+          // Só desmarca o :00 seguinte se o :15 da hora seguinte não estiver ocupando ele
+          const nextHStr = (h + 1).toString().padStart(2, '0');
+          if (!isNext15Occupied) keysToProcess.add(`${nextHStr}:00`);
         }
       }
     });
@@ -311,7 +319,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5",
+                "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5 last:border-r-0",
                 isEditable ? "cursor-pointer" : "cursor-default",
                 !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5"
               )}
