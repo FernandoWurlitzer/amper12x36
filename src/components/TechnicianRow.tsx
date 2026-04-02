@@ -38,7 +38,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
-  // Efeito para sincronizar com o horário real
+  // Efeito para sincronizar com o horário real e controlar a visibilidade das barras
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -47,14 +47,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Exibe manhã se for antes das 13h, senão exibe tarde
+      // NOVA LÓGICA: Até às 12:59 mostra ambas (null), depois somente tarde ('afternoon')
       if (hours < 13) {
-        setVisibleShift('morning');
-      } else if (hours >= 14) {
-        setVisibleShift('afternoon');
+        setVisibleShift(null); // null faz com que as duas condições de renderização sejam verdadeiras
       } else {
-        // Durante o almoço (13h-14h), mantém o último turno ou padrão
-        setVisibleShift(prev => prev || 'morning');
+        setVisibleShift('afternoon');
       }
     };
 
@@ -170,12 +167,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     // Se nenhuma equipe estiver selecionada
     if (activeEquipe === null) {
       if (isOccupied) {
-        // Se clicar em algo ocupado sem equipe ativa, entra no modo desmarcar
         setDragStart({ type, index });
         setDragEnd({ type, index });
         setDragAction('free');
       } else {
-        // Se clicar em algo livre sem equipe ativa, avisa
         setIsSelectionError(true);
         setTimeout(() => setIsSelectionError(false), 1600);
         toast({
@@ -190,7 +185,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     // Se houver equipe selecionada
     setDragStart({ type, index });
     setDragEnd({ type, index });
-    // Se clicar na mesma equipe que já está lá, desmarca. Senão, marca.
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
   };
 
