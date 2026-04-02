@@ -73,8 +73,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const hours = now.getHours();
       const minutes = now.getMinutes();
       setCurrentTime({ h: hours, m: minutes });
-      if (hours < 13) setVisibleShift(null);
-      else setVisibleShift('afternoon');
     };
     updateTime();
     const interval = setInterval(updateTime, 60000);
@@ -119,7 +117,29 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
 
-    slotKeys.forEach(time => {
+    const keysToProcess = new Set(slotKeys);
+
+    // Regra de vínculo: 15 e 45 ativam/desativam a hora exata (:00)
+    slotKeys.forEach(k => {
+      const [h, m] = k.split(':');
+      if (action === 'occupy') {
+        if (m === '15' || m === '45') {
+          keysToProcess.add(`${h}:00`);
+        }
+      } else {
+        // Na desmarcação, só desmarca :00 se o "irmão" (15 ou 45) também estiver livre
+        if (m === '15') {
+          const is45Marked = occupiedSlotsMap[`${h}:45`]?.e1 || occupiedSlotsMap[`${h}:45`]?.e2;
+          if (!is45Marked) keysToProcess.add(`${h}:00`);
+        }
+        if (m === '45') {
+          const is15Marked = occupiedSlotsMap[`${h}:15`]?.e1 || occupiedSlotsMap[`${h}:15`]?.e2;
+          if (!is15Marked) keysToProcess.add(`${h}:00`);
+        }
+      }
+    });
+
+    keysToProcess.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
       
       if (action === 'occupy' && activeEquipe !== null) {
@@ -147,7 +167,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         }
       }
     });
-  }, [isEditable, user, firestore, technician.id, activeEquipe]);
+  }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap]);
 
   const handleMouseUp = useCallback(() => {
     if (dragStart !== null && dragEnd !== null && dragAction !== null) {
@@ -261,8 +281,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
           }
 
-          const isShiftEnd = index === timeSlots.length - 1;
-
           return (
             <div
               key={slot.key}
@@ -270,7 +288,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5",
-                isShiftEnd && "border-r-2 border-white/20",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5",
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
@@ -339,8 +356,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       <div className="space-y-6">
-        {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
-        {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
+        {renderSlotsBar('morning', slots.morning)}
+        {renderSlotsBar('afternoon', slots.afternoon)}
       </div>
       <div className="flex justify-between items-center pt-4 text-[10px] font-black text-white border-t border-white/5">
         <div className="flex gap-6 uppercase tracking-widest">
