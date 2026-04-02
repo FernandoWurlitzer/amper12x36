@@ -64,7 +64,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Lógica solicitada: mostra duas barras até 12:59, depois só a tarde
+      // Lógica: mostra duas barras até 12:59, depois só a tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
@@ -290,8 +290,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r",
-                isHourStart ? "border-white/20" : "border-white/5",
+                "group flex-1 relative flex items-center justify-center transition-all duration-75",
+                // Linhas engroçadas
+                isHourStart ? "border-r-2 border-white/40" : "border-r border-white/15",
                 "last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
