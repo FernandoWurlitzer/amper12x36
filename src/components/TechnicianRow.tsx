@@ -29,7 +29,7 @@ interface TechnicianProfile {
 }
 
 type SlotDefinition = 
-  | { type: 'header'; label: string; key: string; targetSlot: string }
+  | { type: 'combined'; times: string[]; labelTop: string; labelBottom: string; key: string }
   | { type: 'slot'; time: string; key: string; label: string };
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
@@ -107,9 +107,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const generateShift = (start: number, end: number, arr: SlotDefinition[]) => {
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
-        arr.push({ type: 'header', label: `${h}h`, key: `h-${h}`, targetSlot: `${hStr}:00` });
-        arr.push({ type: 'slot', time: `${hStr}:00`, key: `${hStr}:00`, label: '' });
-        arr.push({ type: 'slot', time: `${hStr}:15`, key: `${hStr}:15`, label: '15' });
+        // Combined block for :00 and :15
+        arr.push({ 
+          type: 'combined', 
+          times: [`${hStr}:00`, `${hStr}:15`], 
+          labelTop: `${hStr}:00`, 
+          labelBottom: `${hStr}:15`, 
+          key: `${hStr}:00-15` 
+        });
+        // Separate blocks for :30 and :45
         arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: '30' });
         arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: '45' });
       }
@@ -148,10 +154,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const max = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
-      const selectedKeys = targetSlots
-        .slice(min, max + 1)
-        .filter(s => s.type === 'slot')
-        .map(s => (s as any).key);
+      const selectedKeys: string[] = [];
+      targetSlots.slice(min, max + 1).forEach(s => {
+        if (s.type === 'combined') {
+          selectedKeys.push(...s.times);
+        } else {
+          selectedKeys.push(s.key);
+        }
+      });
 
       handleToggleSlots(selectedKeys, dragAction);
     }
@@ -180,10 +190,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
     const slot = targetSlots[index];
     
-    if (slot.type === 'header') return;
-
-    const existingEquipe = occupiedSlotsMap[slot.key];
-    const isOccupied = !!existingEquipe;
+    const slotKeys = slot.type === 'combined' ? slot.times : [slot.key];
+    const isOccupied = slotKeys.some(key => !!occupiedSlotsMap[key]);
+    const existingEquipe = slotKeys.map(key => occupiedSlotsMap[key]).find(e => !!e);
 
     if (activeEquipe === null) {
       if (isOccupied) {
@@ -216,14 +225,25 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
     
-    if (confirm(`Deseja LIMPAR todos os horários da cidade ${technician.name}?`)) {
+    if (confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}? Esta ação não pode ser desfeita.`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
-        if (snapshot.empty) return;
+        if (snapshot.empty) {
+          toast({ title: "Agenda Vazia", description: "Não há horários para limpar." });
+          return;
+        }
+        
         snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
-        toast({ title: "Agenda Limpa", description: `Todos os horários de ${technician.name} foram liberados.` });
+        toast({ 
+          title: "Agenda Limpa", 
+          description: `Todos os horários de ${technician.name} foram removidos com sucesso.` 
+        });
       } catch (e) {
-        toast({ variant: "destructive", title: "Erro ao limpar", description: "Verifique sua conexão ou permissões." });
+        toast({ 
+          variant: "destructive", 
+          title: "Erro ao limpar", 
+          description: "Ocorreu um erro ao tentar limpar a agenda. Verifique suas permissões." 
+        });
       }
     }
   };
@@ -264,28 +284,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((slot, index) => {
-          if (slot.type === 'header') {
-            const nextSlotEquipe = occupiedSlotsMap[slot.targetSlot];
-            const isAutoMarked = !!nextSlotEquipe;
-            
-            return (
-              <div
-                key={slot.key}
-                className={cn(
-                  "flex-[0.5] flex items-center justify-center border-r border-white/10 text-[9px] font-black uppercase tracking-tighter transition-colors pointer-events-none",
-                  isAutoMarked 
-                    ? (nextSlotEquipe === 2 ? "bg-emerald-500 text-white" : "bg-red-600 text-white") 
-                    : "bg-zinc-800/60 text-muted-foreground"
-                )}
-              >
-                {slot.label}
-              </div>
-            );
-          }
-
-          const equipeId = occupiedSlotsMap[slot.key];
+          const slotKeys = slot.type === 'combined' ? slot.times : [slot.key];
+          const equipeId = slotKeys.map(key => occupiedSlotsMap[key]).find(e => !!e);
           const isOccupied = !!equipeId;
-          const [slotH, slotM] = slot.time.split(":").map(Number);
+          
+          const [slotH, slotM] = (slot.type === 'combined' ? slot.times[0] : slot.time).split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
@@ -311,7 +314,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex-1 flex items-center justify-center transition-all duration-75 border-r border-white/5 last:border-r-0",
+                "group relative flex items-center justify-center transition-all duration-75 border-r border-white/10 last:border-r-0",
+                slot.type === 'combined' ? "flex-[2] bg-zinc-800/40" : "flex-1",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-red-600") 
@@ -319,12 +323,24 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
-              <span className={cn(
-                "text-[9px] font-black tracking-tighter drop-shadow-sm",
-                visualOccupied ? "text-white" : "text-muted-foreground/40"
-              )}>
-                {slot.label}
-              </span>
+              {slot.type === 'combined' ? (
+                <div className="flex flex-col items-center leading-none gap-0.5">
+                  <span className={cn("text-[8px] font-black uppercase tracking-tighter", visualOccupied ? "text-white" : "text-muted-foreground/60")}>
+                    {slot.labelTop}
+                  </span>
+                  <div className="h-px w-4 bg-white/10" />
+                  <span className={cn("text-[8px] font-black uppercase tracking-tighter", visualOccupied ? "text-white" : "text-muted-foreground/60")}>
+                    {slot.labelBottom}
+                  </span>
+                </div>
+              ) : (
+                <span className={cn(
+                  "text-[9px] font-black tracking-tighter drop-shadow-sm",
+                  visualOccupied ? "text-white" : "text-muted-foreground/40"
+                )}>
+                  {slot.label}
+                </span>
+              )}
             </div>
           );
         })}
