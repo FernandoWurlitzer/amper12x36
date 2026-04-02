@@ -124,7 +124,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     const filterShift = (shift: SlotDefinition[], isMorning: boolean) => {
       if (isMorning && currentTime.h >= 13) return [];
-      // Manter a partir de uma hora atrás para histórico, mas respeitando limites de turno
       const thresholdH = Math.max(isMorning ? 8 : 14, currentTime.h - 1);
       return shift.filter(slot => slot.h >= thresholdH);
     };
@@ -156,7 +155,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           keysToProcess.add(`${nextHStr}:00`);
         }
       } else {
-        // Lógica de desmarcação com proteção: só remove a hora cheia se o vizinho dependente não estiver ocupado
         if (m === 15) {
           const prevHour45 = (h - 1).toString().padStart(2, '0') + ':45';
           const isPrev45Occupied = occupiedSlotsMap[prevHour45]?.e1 || occupiedSlotsMap[prevHour45]?.e2;
@@ -266,6 +264,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       snapshot.docs.forEach(d => {
         const timeKey = d.id;
         const [h, m] = timeKey.split(':').map(Number);
+        // Lixeira Seletiva: remove apenas horários futuros ou o atual exato
         if (!isPast(h, m)) deleteDocumentNonBlocking(d.ref);
       });
       toast({ title: "Agenda Limpa" });
