@@ -65,12 +65,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
+      // Visibilidade das barras conforme solicitado
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
+      // Limpeza automática ao final do dia (20:59)
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -267,11 +269,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
           
           const minutes = time.split(":")[1];
-          let displayLabel = isHourStart ? time : "";
-          if (!isHourStart) {
-            if (minutes === "15") displayLabel = "15/30";
-            if (minutes === "30") displayLabel = "30/45";
-            if (minutes === "45") displayLabel = "45/00";
+          let displayLabel = "";
+          if (isHourStart) {
+            displayLabel = time;
+          } else {
+            // Rótulos de minutos conforme solicitado
+            if (minutes === "15") displayLabel = "15";
+            if (minutes === "30") displayLabel = "30";
+            if (minutes === "45") displayLabel = "45";
           }
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
@@ -298,8 +303,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-r-2 border-white/40" : "border-r border-white/15",
-                "last:border-r-0",
+                // Barra grossa nas horas cheias conforme solicitado
+                isHourStart ? "border-l-4 border-white/40" : "border-l border-white/15",
+                "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-red-600") 
@@ -311,7 +317,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 <div className={cn(
                   "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
                   visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40",
-                  isHourStart ? "text-[10px]" : "text-[7px] opacity-60"
+                  isHourStart ? "text-[10px]" : "text-[8px] opacity-60"
                 )}>
                   {displayLabel}
                 </div>
