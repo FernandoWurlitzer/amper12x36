@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-react";
+import { Clock, Trash2, Sunrise, Sunset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -66,28 +66,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const now = new Date();
       const hours = now.getHours();
       const minutes = now.getMinutes();
-      
       setCurrentTime({ h: hours, m: minutes });
-
-      if (hours < 13) {
-        setVisibleShift(null);
-      } else {
-        setVisibleShift('afternoon');
-      }
+      if (hours < 13) setVisibleShift(null);
+      else setVisibleShift('afternoon');
     };
-
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
   const initials = useMemo(() => {
-    return technician.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    return technician.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   }, [technician.name]);
 
   const occupiedSlotsMap = useMemo(() => {
@@ -107,7 +96,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const generateShift = (start: number, end: number, arr: SlotDefinition[]) => {
       for (let h = start; h < end; h++) {
         const hStr = h.toString().padStart(2, "0");
-        // Combined block for :00 and :15
         arr.push({ 
           type: 'combined', 
           times: [`${hStr}:00`, `${hStr}:15`], 
@@ -115,15 +103,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           labelBottom: `${hStr}:15`, 
           key: `${hStr}:00-15` 
         });
-        // Separate blocks for :30 and :45
-        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: '30' });
-        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: '45' });
+        arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `${hStr}:30` });
+        arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `${hStr}:45` });
       }
     };
 
     generateShift(8, 13, morning);
     generateShift(14, 20, afternoon);
-
     return { morning, afternoon };
   }, []);
 
@@ -156,11 +142,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       const selectedKeys: string[] = [];
       targetSlots.slice(min, max + 1).forEach(s => {
-        if (s.type === 'combined') {
-          selectedKeys.push(...s.times);
-        } else {
-          selectedKeys.push(s.key);
-        }
+        if (s.type === 'combined') selectedKeys.push(...s.times);
+        else selectedKeys.push(s.key);
       });
 
       handleToggleSlots(selectedKeys, dragAction);
@@ -189,8 +172,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
     const slot = targetSlots[index];
-    
     const slotKeys = slot.type === 'combined' ? slot.times : [slot.key];
+    
     const isOccupied = slotKeys.some(key => !!occupiedSlotsMap[key]);
     const existingEquipe = slotKeys.map(key => occupiedSlotsMap[key]).find(e => !!e);
 
@@ -224,37 +207,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    
-    if (confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}? Esta ação não pode ser desfeita.`)) {
+    if (confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
-        if (snapshot.empty) {
-          toast({ title: "Agenda Vazia", description: "Não há horários para limpar." });
-          return;
-        }
-        
         snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
-        toast({ 
-          title: "Agenda Limpa", 
-          description: `Todos os horários de ${technician.name} foram removidos com sucesso.` 
-        });
+        toast({ title: "Agenda Limpa", description: `Todos os horários de ${technician.name} foram removidos.` });
       } catch (e) {
-        toast({ 
-          variant: "destructive", 
-          title: "Erro ao limpar", 
-          description: "Ocorreu um erro ao tentar limpar a agenda. Verifique suas permissões." 
-        });
+        toast({ variant: "destructive", title: "Erro ao limpar", description: "Verifique suas permissões." });
       }
     }
   };
 
   const handleStatusToggle = () => {
     if (!isEditable || !techProfileRef) return;
-    
     const statuses: Array<TechnicianProfile["status"]> = ["OPERACIONAL", "INDISPONÍVEL", "SOBREAVISO"];
     const currentIndex = statuses.indexOf(currentStatus as any);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-
     setDocumentNonBlocking(techProfileRef, {
       status: nextStatus,
       updatedAt: serverTimestamp(),
@@ -287,7 +255,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const slotKeys = slot.type === 'combined' ? slot.times : [slot.key];
           const equipeId = slotKeys.map(key => occupiedSlotsMap[key]).find(e => !!e);
           const isOccupied = !!equipeId;
-          
           const [slotH, slotM] = (slot.type === 'combined' ? slot.times[0] : slot.time).split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
@@ -314,7 +281,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex items-center justify-center transition-all duration-75 border-r border-white/10 last:border-r-0",
+                "group relative flex items-center justify-center transition-all duration-75 border-r-2 border-zinc-950/50 last:border-r-0",
                 slot.type === 'combined' ? "flex-[2] bg-zinc-800/40" : "flex-1",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
@@ -325,17 +292,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             >
               {slot.type === 'combined' ? (
                 <div className="flex flex-col items-center leading-none gap-0.5">
-                  <span className={cn("text-[8px] font-black uppercase tracking-tighter", visualOccupied ? "text-white" : "text-muted-foreground/60")}>
+                  <span className={cn("text-[9px] font-black tracking-tighter", visualOccupied ? "text-white" : "text-muted-foreground/80")}>
                     {slot.labelTop}
                   </span>
-                  <div className="h-px w-4 bg-white/10" />
-                  <span className={cn("text-[8px] font-black uppercase tracking-tighter", visualOccupied ? "text-white" : "text-muted-foreground/60")}>
+                  <div className="h-px w-6 bg-white/10" />
+                  <span className={cn("text-[8px] font-bold tracking-tighter", visualOccupied ? "text-white/80" : "text-muted-foreground/40")}>
                     {slot.labelBottom}
                   </span>
                 </div>
               ) : (
                 <span className={cn(
-                  "text-[9px] font-black tracking-tighter drop-shadow-sm",
+                  "text-[9px] font-bold tracking-tighter",
                   visualOccupied ? "text-white" : "text-muted-foreground/40"
                 )}>
                   {slot.label}
@@ -422,7 +389,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Disponível</span></div>
         </div>
         <p className="font-black text-[9px] uppercase tracking-[0.3em] text-white animate-pulse">
-          {isEditable ? (activeEquipe === null ? "SELECIONE UMA EQUIPE PARA MARCAR" : "Pressione e arraste na barra") : "Modo de Visualização"}
+          {isEditable ? (activeEquipe === null ? "CLIQUE PARA DESMARCAR OU SELECIONE EQUIPE" : "Pressione e arraste na barra") : "Modo de Visualização"}
         </p>
       </div>
     </div>
