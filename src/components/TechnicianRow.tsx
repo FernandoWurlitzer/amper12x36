@@ -6,7 +6,7 @@ import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc, serverTimestamp, getDocs } from "firebase/firestore";
+import { collection, doc, serverTimestamp, getDocs, query } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,18 +44,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
 
-  // Limpeza automática às 20:59 e Controle de Visibilidade
+  // Atualização de tempo e visibilidade das barras
   useEffect(() => {
-    const autoClearAll = async () => {
-      if (!firestore || !scheduledBlocksRef || !isEditable) return;
-      try {
-        const snapshot = await getDocs(scheduledBlocksRef);
-        snapshot.docs.forEach(d => {
-          deleteDocumentNonBlocking(d.ref);
-        });
-      } catch (e) {}
-    };
-
     const updateTime = () => {
       const now = new Date();
       const hours = now.getHours();
@@ -71,13 +61,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       }
 
       // Limpeza automática pontual às 20:59
-      if (hours === 20 && minutes === 59) {
-        autoClearAll();
+      if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
+        getDocs(scheduledBlocksRef).then(snapshot => {
+          snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
+        }).catch(() => {});
       }
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 60000); // Atualiza a cada minuto
+    const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, [firestore, scheduledBlocksRef, isEditable]);
 
@@ -171,7 +163,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const existingEquipe = occupiedSlotsMap[time];
     const isOccupied = !!existingEquipe;
 
-    // Se clicar em um horário livre sem equipe, avisa
     if (activeEquipe === null) {
       if (isOccupied) {
         setDragStart({ type, index });
@@ -202,12 +193,19 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
+    
     if (confirm(`Deseja LIMPAR todos os horários da cidade ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
+        if (snapshot.empty) {
+          toast({ title: "Agenda Vazia", description: "Não há horários para limpar." });
+          return;
+        }
+
         snapshot.docs.forEach(d => {
           deleteDocumentNonBlocking(d.ref);
         });
+
         toast({ 
           title: "Agenda Limpa", 
           description: `Todos os horários de ${technician.name} foram liberados.` 
@@ -216,7 +214,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         toast({
           variant: "destructive",
           title: "Erro ao limpar",
-          description: "Não foi possível remover os agendamentos."
+          description: "Verifique sua conexão ou permissões."
         });
       }
     }
@@ -326,7 +324,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={handleClearAll} 
+                onClick={(e) => { e.stopPropagation(); handleClearAll(); }} 
                 className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest"
               >
                 <Trash2 className="h-4 w-4" /> LIMPAR
