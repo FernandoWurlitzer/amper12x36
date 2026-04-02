@@ -152,17 +152,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
       const selectedKeysSet = new Set<string>();
-      targetSlots.slice(min, max + 1).forEach((s, idx) => {
+      targetSlots.slice(min, max + 1).forEach((s) => {
         selectedKeysSet.add(s.key);
-        // Regra de negócio: Se marcar 15 ou 45, marca também o respectivo 00 ou 30
-        if (dragAction === 'occupy') {
-          if (s.minute === 15) {
-            const hStr = s.time.split(":")[0];
-            selectedKeysSet.add(`${hStr}:00`);
-          } else if (s.minute === 45) {
-            const hStr = s.time.split(":")[0];
-            selectedKeysSet.add(`${hStr}:30`);
-          }
+        // Regra de negócio: Se marcar ou desmarcar 15 ou 45, faz o mesmo com o respectivo 00 ou 30
+        if (s.minute === 15) {
+          const hStr = s.time.split(":")[0];
+          selectedKeysSet.add(`${hStr}:00`);
+        } else if (s.minute === 45) {
+          const hStr = s.time.split(":")[0];
+          selectedKeysSet.add(`${hStr}:30`);
         }
       });
 
@@ -284,8 +282,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className="flex flex-col h-full w-full">
-                {visualE1 && <div className={cn("bg-red-600 transition-all", visualE2 ? "h-1/2" : "h-full")} />}
-                {visualE2 && <div className={cn("bg-emerald-500 transition-all", visualE1 ? "h-1/2" : "h-full")} />}
+                <div className={cn("transition-all h-full", visualE1 && "bg-red-600", visualE1 && visualE2 && "h-1/2")} />
+                <div className={cn("transition-all h-full", visualE2 && "bg-emerald-500", visualE1 && visualE2 && "h-1/2")} />
               </div>
               
               <span className={cn(
