@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -265,8 +266,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const [slotH, slotM] = time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
           
-          const minutesLabel = time.split(":")[1];
-          const displayLabel = isHourStart ? time : minutesLabel;
+          const minutes = time.split(":")[1];
+          let displayLabel = isHourStart ? time : "";
+          if (!isHourStart) {
+            if (minutes === "15") displayLabel = "15/30";
+            if (minutes === "30") displayLabel = "30/45";
+            if (minutes === "45") displayLabel = "45/00";
+          }
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
@@ -305,7 +311,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 <div className={cn(
                   "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
                   visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40",
-                  isHourStart ? "text-[10px]" : "text-[8px] opacity-70"
+                  isHourStart ? "text-[10px]" : "text-[7px] opacity-60"
                 )}>
                   {displayLabel}
                 </div>

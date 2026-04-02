@@ -8,8 +8,10 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarRange, Users } from "lucide-react";
+import { useUser } from "@/firebase";
 
 export function Header() {
+  const { user } = useUser();
   const logo = PlaceHolderImages.find(img => img.id === "amper-logo");
   const [imgError, setImgError] = useState(false);
 
@@ -46,12 +48,14 @@ export function Header() {
               </Link>
             </Button>
 
-            <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
-              <Link href="/tecnicos">
-                <Users className="h-4 w-4" />
-                Técnicos
-              </Link>
-            </Button>
+            {user && (
+              <Button variant="ghost" size="sm" asChild className="gap-2 text-[10px] font-bold uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all">
+                <Link href="/tecnicos">
+                  <Users className="h-4 w-4" />
+                  Técnicos
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
         <Auth />
