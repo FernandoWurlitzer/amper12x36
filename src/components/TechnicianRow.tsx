@@ -27,6 +27,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  
+  // Estados para o recurso de clicar e arrastar
   const [dragStart, setDragStart] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
@@ -36,6 +38,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
+  // Efeito para sincronizar com o horário real
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -44,9 +47,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Sincronização conforme solicitado:
-      // Das 00:00 até 13:59 -> Manhã (Turno 1)
-      // Das 14:00 até 20:59 -> Tarde (Turno 2)
+      // Sincronização de Turnos:
+      // Manhã (08:00 - 13:00) exibida até as 13:59
+      // Tarde (14:00 - 20:00) exibida a partir das 14:00
       if (hours < 14) {
         setVisibleShift('morning');
       } else {
@@ -55,7 +58,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 60000);
+    const interval = setInterval(updateTime, 60000); // Atualiza a cada minuto
     return () => clearInterval(interval);
   }, []);
 
@@ -89,7 +92,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const morning = [];
     const afternoon = [];
     
-    // Turno 1: 08:00 às 13:00 (Intervalo inicia às 13:00)
+    // Turno 1: 08:00 às 13:00
     for (let h = 8; h < 13; h++) {
       for (let m = 0; m < 60; m += 15) {
         morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
@@ -120,6 +123,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           equipe: activeEquipe
         }, { merge: true });
       } else if (action === 'free') {
+        // Desmarca se não houver equipe selecionada OU se a equipe do slot for a mesma ativa
         if (activeEquipe === null || occupiedSlotsMap[time] === activeEquipe) {
           deleteDocumentNonBlocking(docRef);
         }
@@ -130,7 +134,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
     
-    if (confirm(`Deseja limpar todos os horários de ${technician.name}?`)) {
+    if (confirm(`Deseja limpar toda a agenda de ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
         snapshot.docs.forEach(d => {
@@ -151,25 +155,30 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const existingEquipe = occupiedSlotsMap[time];
     const isOccupied = !!existingEquipe;
 
+    // Se nenhuma equipe estiver selecionada
     if (activeEquipe === null) {
       if (isOccupied) {
+        // Se clicar em algo ocupado sem equipe ativa, entra no modo desmarcar
         setDragStart({ type, index });
         setDragEnd({ type, index });
         setDragAction('free');
       } else {
+        // Se clicar em algo livre sem equipe ativa, avisa
         setIsSelectionError(true);
         setTimeout(() => setIsSelectionError(false), 1600);
         toast({
           variant: "destructive",
           title: "Selecione uma Equipe",
-          description: "Selecione EQUIPE 1 ou EQUIPE 2 para marcar.",
+          description: "Selecione EQUIPE 1 ou EQUIPE 2 antes de marcar.",
         });
       }
       return;
     }
 
+    // Se houver equipe selecionada
     setDragStart({ type, index });
     setDragEnd({ type, index });
+    // Se clicar na mesma equipe que já está lá, desmarca. Senão, marca.
     setDragAction(existingEquipe === activeEquipe ? 'free' : 'occupy');
   };
 
@@ -191,7 +200,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, activeEquipe, occupiedSlotsMap, isEditable]);
+  }, [dragStart, dragEnd, dragAction, slots, activeEquipe, occupiedSlotsMap, isEditable, user, firestore]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -215,7 +224,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         )}
       </div>
       <div className={cn(
-        "flex h-14 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
+        "flex h-12 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
         (!isEditable || isLoading) && "cursor-not-allowed"
       )}>
         {timeSlots.map((time, index) => {
@@ -251,12 +260,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           return (
             <div
               key={time}
-              onMouseDown={() => handleMouseDown(type, index)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleMouseDown(type, index);
+              }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               style={{ transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms' }}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
-                isEditable ? "cursor-pointer" : "cursor-default",
+                isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 isHourStart && !visualOccupied && "border-l border-l-white/10",
                 visualOccupied 
                   ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
@@ -271,7 +283,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 </span>
               ) : (
                 isHourStart && (
-                  <div className="text-[8px] font-black leading-none select-none pointer-events-none text-white/60">
+                  <div className="text-[7px] font-black leading-none select-none pointer-events-none text-white/50">
                     {time}
                   </div>
                 )
@@ -286,11 +298,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-xl p-2.5 space-y-1 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
+      "bg-card border rounded-xl p-3 space-y-2 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
       isLoading && "opacity-50 animate-pulse",
       compact && "p-2"
     )}>
-      <div className="flex items-center justify-between mb-0.5">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none shadow-sm shadow-primary/20">
             {initials}
@@ -304,32 +316,34 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
-                  activeEquipe === 1 ? "bg-accent/10 border-accent/30" : "bg-muted/20 border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
+                  activeEquipe === 1 ? "bg-accent/20 border-accent/40 ring-1 ring-accent/20" : "bg-muted/20 border-transparent",
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
                 <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 1 ? "bg-accent shadow-[0_0_8px_hsl(var(--accent))]" : "bg-muted")} />
-                <span className={cn("text-[9px] font-black uppercase tracking-wider", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
+                <span className={cn("text-[10px] font-black uppercase tracking-wider", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
-                  activeEquipe === 2 ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-transparent",
-                  isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50"
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
+                  activeEquipe === 2 ? "bg-green-500/20 border-green-500/40 ring-1 ring-green-500/20" : "bg-muted/20 border-transparent",
+                  isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
                 <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 2 ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-muted")} />
-                <span className={cn("text-[9px] font-black uppercase tracking-wider", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
+                <span className={cn("text-[10px] font-black uppercase tracking-wider", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
+
+              <div className="w-px h-6 bg-border/40 mx-1" />
 
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleClearAll}
-                className="h-7 text-[9px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider"
+                className="h-7 text-[9px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Limpar
@@ -339,30 +353,34 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/20 mt-0.5">
-        <div className="flex gap-3">
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-sm bg-accent" />
-            <span>E1</span>
+      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/10 mt-1">
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-accent shadow-[0_0_4px_hsl(var(--accent)/0.5)]" />
+            <span>Equipe 1</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-sm bg-green-500" />
-            <span>E2</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]" />
+            <span>Equipe 2</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-sm bg-available/50 border border-border" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-sm bg-available/40 border border-white/5" />
             <span>Livre</span>
           </div>
         </div>
-        <p className={cn("text-white/40 font-black text-[7px] uppercase tracking-[0.05em]", isSelectionError && "text-primary animate-pulse")}>
-          {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR OU CLIQUE PARA APAGAR" : "CLIQUE E ARRASTE") : "MODO VISUALIZAÇÃO"}
+        <p className={cn(
+          "font-black text-[7px] uppercase tracking-[0.1em] transition-colors duration-300",
+          isEditable ? (activeEquipe === null ? "text-primary/70" : "text-white/60") : "text-white/20"
+        )}>
+          {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA OCUPAR") : "MODO VISUALIZAÇÃO"}
         </p>
       </div>
     </div>
   );
 }
+
