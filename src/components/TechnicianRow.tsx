@@ -105,15 +105,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const slots = useMemo(() => {
     const morning = [];
     const afternoon = [];
+    // Morning: 08:00 to 13:00 - 3 blocks per hour (00, 30, 45)
     for (let h = 8; h < 13; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        morning.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
-      }
+      morning.push(`${h.toString().padStart(2, "0")}:00`);
+      morning.push(`${h.toString().padStart(2, "0")}:30`);
+      morning.push(`${h.toString().padStart(2, "0")}:45`);
     }
+    // Afternoon: 14:00 to 20:00 - 3 blocks per hour (00, 30, 45)
     for (let h = 14; h < 20; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        afternoon.push(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`);
-      }
+      afternoon.push(`${h.toString().padStart(2, "0")}:00`);
+      afternoon.push(`${h.toString().padStart(2, "0")}:30`);
+      afternoon.push(`${h.toString().padStart(2, "0")}:45`);
     }
     return { morning, afternoon };
   }, []);
@@ -271,7 +273,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           if (isHourStart) {
             displayLabel = time;
           } else {
-            // Rótulos de minutos: apenas 30 e 45 conforme solicitado
             if (minutes === "30") displayLabel = "30";
             if (minutes === "45") displayLabel = "45";
           }
@@ -299,8 +300,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-l-4 border-white/40" : "border-l-2 border-white/15",
+                "group relative flex items-center justify-center transition-all duration-75",
+                isHourStart ? "border-l-4 border-white/40 flex-[2]" : "border-l border-white/15 flex-[1]",
                 "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
@@ -312,8 +313,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
                 <div className={cn(
                   "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
-                  visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40",
-                  isHourStart ? "text-[10px]" : "text-[8px] opacity-60"
+                  "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]",
+                  isHourStart ? "text-[11px]" : "text-[9px] opacity-70"
                 )}>
                   {displayLabel}
                 </div>
