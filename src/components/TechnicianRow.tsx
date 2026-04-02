@@ -18,7 +18,8 @@ type Props = {
 
 interface ScheduledBlockData {
   id: string;
-  equipe?: number;
+  equipe1?: boolean;
+  equipe2?: boolean;
   technicianId: string;
   markedByUserId: string;
 }
@@ -84,10 +85,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [technician.name]);
 
   const occupiedSlotsMap = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { e1: boolean; e2: boolean }> = {};
     if (blocksData) {
       blocksData.forEach(block => {
-        map[block.id] = block.equipe || 1;
+        map[block.id] = { e1: !!block.equipe1, e2: !!block.equipe2 };
       });
     }
     return map;
@@ -117,17 +118,27 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     slotKeys.forEach(time => {
       const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
+      
       if (action === 'occupy' && activeEquipe !== null) {
-        setDocumentNonBlocking(docRef, {
+        const update: any = {
           technicianId: technician.id,
           startTime: time,
           endTime: time,
           markedByUserId: user.uid,
           updatedAt: serverTimestamp(),
-          equipe: activeEquipe
-        }, { merge: true });
+        };
+        if (activeEquipe === 1) update.equipe1 = true;
+        if (activeEquipe === 2) update.equipe2 = true;
+        setDocumentNonBlocking(docRef, update, { merge: true });
       } else if (action === 'free') {
-        deleteDocumentNonBlocking(docRef);
+        if (activeEquipe === null) {
+          deleteDocumentNonBlocking(docRef);
+        } else {
+          const update: any = {};
+          if (activeEquipe === 1) update.equipe1 = false;
+          if (activeEquipe === 2) update.equipe2 = false;
+          setDocumentNonBlocking(docRef, update, { merge: true });
+        }
       }
     });
   }, [isEditable, user, firestore, technician.id, activeEquipe]);
@@ -160,39 +171,31 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
     if (!isEditable) {
-      toast({
-        variant: "destructive",
-        title: "Acesso Restrito",
-        description: "Apenas membros do TAC podem editar a agenda.",
-      });
+      toast({ variant: "destructive", title: "Acesso Restrito", description: "Apenas TAC pode editar." });
       return;
     }
     
     const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
     const slot = targetSlots[index];
-    const isOccupied = !!occupiedSlotsMap[slot.key];
-    const existingEquipe = occupiedSlotsMap[slot.key];
+    const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
     if (activeEquipe === null) {
-      if (isOccupied) {
+      if (existing.e1 || existing.e2) {
         setDragStart({ type, index });
         setDragEnd({ type, index });
         setDragAction('free');
       } else {
         setIsSelectionError(true);
         setTimeout(() => setIsSelectionError(false), 1600);
-        toast({
-          variant: "destructive",
-          title: "Selecione uma Equipe",
-          description: "Selecione EQUIPE 1 ou EQUIPE 2 antes de marcar.",
-        });
+        toast({ variant: "destructive", title: "Selecione Equipe", description: "Selecione E1 ou E2." });
       }
       return;
     }
 
+    const isCurrentActive = (activeEquipe === 1 && existing.e1) || (activeEquipe === 2 && existing.e2);
     setDragStart({ type, index });
     setDragEnd({ type, index });
-    setDragAction(isOccupied && existingEquipe === activeEquipe ? 'free' : 'occupy');
+    setDragAction(isCurrentActive ? 'free' : 'occupy');
   };
 
   const handleMouseEnter = (type: 'morning' | 'afternoon', index: number) => {
@@ -203,17 +206,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    if (window.confirm(`Deseja LIMPAR TODOS os horários da cidade ${technician.name}?`)) {
+    if (window.confirm(`LIMPAR TODOS os horários de ${technician.name}?`)) {
       try {
         const snapshot = await getDocs(scheduledBlocksRef);
-        if (snapshot.empty) {
-          toast({ title: "Agenda vazia", description: "Não há horários marcados para limpar." });
-          return;
-        }
         snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
-        toast({ title: "Agenda Limpa", description: `Todos os horários de ${technician.name} foram removidos.` });
+        toast({ title: "Agenda Limpa" });
       } catch (e) {
-        toast({ variant: "destructive", title: "Erro ao limpar", description: "Verifique suas permissões." });
+        toast({ variant: "destructive", title: "Erro ao limpar" });
       }
     }
   };
@@ -223,11 +222,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     const statuses: Array<TechnicianProfile["status"]> = ["OPERACIONAL", "INDISPONÍVEL", "SOBREAVISO"];
     const currentIndex = statuses.indexOf(currentStatus as any);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-    setDocumentNonBlocking(techProfileRef, {
-      status: nextStatus,
-      updatedAt: serverTimestamp(),
-      name: technician.name
-    }, { merge: true });
+    setDocumentNonBlocking(techProfileRef, { status: nextStatus, name: technician.name }, { merge: true });
   };
 
   const statusColor = useMemo(() => {
@@ -247,31 +242,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           {type === 'morning' ? 'Turno 1 (08h - 13h)' : 'Turno 2 (14h - 20h)'}
         </div>
       </div>
-      <div className={cn(
-        "flex h-12 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl",
-        (!isEditable || isLoading) && "opacity-75"
-      )}>
+      <div className={cn("flex h-12 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl", (!isEditable || isLoading) && "opacity-75")}>
         {timeSlots.map((slot, index) => {
-          const equipeId = occupiedSlotsMap[slot.key];
-          const isOccupied = !!equipeId;
+          const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
           const [slotH, slotM] = slot.time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
 
-          const isInDragRange = dragStart !== null && dragEnd !== null && 
-            dragStart.type === type && dragEnd.type === type &&
-            index >= Math.min(dragStart.index, dragEnd.index) && 
-            index <= Math.max(dragStart.index, dragEnd.index);
+          const isInDragRange = dragStart !== null && dragEnd !== null && dragStart.type === type && dragEnd.type === type && index >= Math.min(dragStart.index, dragEnd.index) && index <= Math.max(dragStart.index, dragEnd.index);
 
-          let visualOccupied = isOccupied;
-          let visualEquipe = equipeId;
+          let visualE1 = existing.e1;
+          let visualE2 = existing.e2;
 
           if (isInDragRange && dragAction) {
-            if (dragAction === 'occupy') {
-              visualOccupied = true;
-              visualEquipe = activeEquipe!;
-            } else if (dragAction === 'free') {
-              visualOccupied = false;
-            }
+            if (activeEquipe === 1) visualE1 = dragAction === 'occupy';
+            else if (activeEquipe === 2) visualE2 = dragAction === 'occupy';
+            else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
           }
 
           return (
@@ -280,20 +265,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group relative flex-1 flex items-center justify-center transition-all duration-75 border-r border-white/5",
+                "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5",
                 slot.isHourStart && "border-l-2 border-white/20",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
-                visualOccupied 
-                  ? (visualEquipe === 2 ? "bg-emerald-500 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]" : "bg-red-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]") 
-                  : "bg-zinc-900/40 hover:bg-white/5",
+                !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5",
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
+              {visualE1 && <div className={cn("flex-1 bg-red-600", !visualE2 ? "h-full" : "h-1/2")} />}
+              {visualE2 && <div className={cn("flex-1 bg-emerald-500", !visualE1 ? "h-full" : "h-1/2")} />}
+              
               <span className={cn(
-                "text-[10px] font-black tracking-tighter uppercase",
-                visualOccupied ? "text-white drop-shadow-md" : "text-muted-foreground/60"
+                "absolute inset-0 flex items-center justify-center text-[10px] font-black tracking-tighter uppercase pointer-events-none",
+                (visualE1 || visualE2) ? "text-white drop-shadow-md" : "text-muted-foreground/60"
               )}>
-                {slot.label}
+                {slot.isHourStart ? `${slot.time}` : slot.label}
               </span>
             </div>
           );
@@ -311,13 +297,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           </div>
           <div className="space-y-0.5">
             <h3 className="font-black text-base text-foreground tracking-tight uppercase">{technician.name}</h3>
-            <div 
-              className={cn(
-                "flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest",
-                isEditable && "cursor-pointer hover:opacity-80 transition-opacity"
-              )}
-              onClick={handleStatusToggle}
-            >
+            <div className={cn("flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest", isEditable && "cursor-pointer hover:opacity-80")} onClick={handleStatusToggle}>
               <span className="text-white">STATUS:</span>
               <span className={cn("font-black", statusColor)}>{currentStatus}</span>
             </div>
@@ -326,39 +306,16 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex items-center gap-4">
           {isEditable && (
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} 
-                className={cn(
-                  "flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all", 
-                  activeEquipe === 1 
-                    ? "bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20" 
-                    : "bg-zinc-800/40 border-white/5 hover:bg-zinc-700/60", 
-                  isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50"
-                )}
-              >
+              <button onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} className={cn("flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all", activeEquipe === 1 ? "bg-red-600 border-red-500 text-white shadow-lg" : "bg-zinc-800/40 border-white/5", isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50")}>
                 <div className={cn("w-3 h-3 rounded-full", activeEquipe === 1 ? "bg-white" : "bg-red-600")} />
-                <span className={cn("text-xs font-black uppercase tracking-widest", activeEquipe === 1 ? "text-white" : "text-muted-foreground")}>E1</span>
+                <span className="text-xs font-black uppercase tracking-widest">E1</span>
               </button>
-              <button 
-                onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} 
-                className={cn(
-                  "flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all", 
-                  activeEquipe === 2 
-                    ? "bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20" 
-                    : "bg-zinc-800/40 border-white/5 hover:bg-zinc-700/60", 
-                  isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50"
-                )}
-              >
+              <button onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} className={cn("flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all", activeEquipe === 2 ? "bg-emerald-500 border-emerald-400 text-white shadow-lg" : "bg-zinc-800/40 border-white/5", isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50")}>
                 <div className={cn("w-3 h-3 rounded-full", activeEquipe === 2 ? "bg-white" : "bg-emerald-500")} />
-                <span className={cn("text-xs font-black uppercase tracking-widest", activeEquipe === 2 ? "text-white" : "text-muted-foreground")}>E2</span>
+                <span className="text-xs font-black uppercase tracking-widest">E2</span>
               </button>
               <div className="w-px h-8 bg-white/5 mx-2" />
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={(e) => { e.stopPropagation(); handleClearAll(); }} 
-                className="h-10 text-[10px] gap-2 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black tracking-[0.2em] rounded-xl px-4 transition-all"
-              >
+              <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-10 text-[10px] gap-2 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black rounded-xl px-4">
                 <Trash2 className="h-4 w-4" /> LIMPAR
               </Button>
             </div>
@@ -373,10 +330,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex gap-6 uppercase tracking-widest">
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-red-600" /><span>Equipe 1</span></div>
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-emerald-500" /><span>Equipe 2</span></div>
-          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Disponível</span></div>
+          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Livre</span></div>
         </div>
         <p className="font-black text-[9px] uppercase tracking-[0.3em] text-white animate-pulse">
-          {isEditable ? (activeEquipe === null ? "CLIQUE PARA DESMARCAR OU SELECIONE EQUIPE" : "Pressione e arraste na barra") : "Modo de Visualização"}
+          {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE E ARRASTE" : "Pressione e arraste na barra") : "Modo Visualização"}
         </p>
       </div>
     </div>
