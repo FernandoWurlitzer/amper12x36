@@ -39,7 +39,7 @@ interface SlotDefinition {
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = useUser();
+  const { user } = userUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -92,7 +92,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return map;
   }, [blocksData]);
 
-  const slots = useMemo(() => {
+  const baseSlots = useMemo(() => {
     const morning: SlotDefinition[] = [];
     const afternoon: SlotDefinition[] = [];
 
@@ -113,12 +113,32 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return { morning, afternoon };
   }, []);
 
+  const filteredSlots = useMemo(() => {
+    if (!currentTime) return baseSlots;
+
+    const filterShift = (shift: SlotDefinition[]) => {
+      const remaining = shift.filter(slot => {
+        const [h, m] = slot.time.split(':').map(Number);
+        return h > currentTime.h || (h === currentTime.h && m >= currentTime.m);
+      });
+      
+      if (remaining.length === 0) {
+        return shift.slice(-5); // Mantém a última hora do turno como referência
+      }
+      return remaining;
+    };
+
+    return {
+      morning: filterShift(baseSlots.morning),
+      afternoon: filterShift(baseSlots.afternoon)
+    };
+  }, [baseSlots, currentTime]);
+
   const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
 
     const keysToProcess = new Set(slotKeys);
 
-    // Lógica de Vínculo
     slotKeys.forEach(k => {
       const [hStr, mStr] = k.split(':');
       const h = parseInt(hStr);
@@ -131,15 +151,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           keysToProcess.add(`${nextH}:00`);
         }
       } else {
-        // Desmarcação: Regras de Proteção
         if (m === 15) {
-          // Só desmarca HH:00 se o 45 da hora ANTERIOR não estiver ocupado
           const prevH = (h - 1).toString().padStart(2, '0');
           const isPrev45Occupied = occupiedSlotsMap[`${prevH}:45`]?.e1 || occupiedSlotsMap[`${prevH}:45`]?.e2;
           if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
         }
         if (m === 45) {
-          // Só desmarca (HH+1):00 se o 15 da próxima hora não estiver ocupado
           const nextH = (h + 1).toString().padStart(2, '0');
           const isNext15Occupied = occupiedSlotsMap[`${nextH}:15`]?.e1 || occupiedSlotsMap[`${nextH}:15`]?.e2;
           if (!isNext15Occupied) keysToProcess.add(`${nextH}:00`);
@@ -182,7 +199,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const type = dragStart.type;
       const minIdx = Math.min(dragStart.index, dragEnd.index);
       const maxIdx = Math.max(dragStart.index, dragEnd.index);
-      const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
+      const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
       
       const keysToUpdate = targetSlots.slice(minIdx, maxIdx + 1).map(s => s.key);
       handleToggleSlots(keysToUpdate, dragAction);
@@ -190,7 +207,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
+  }, [dragStart, dragEnd, dragAction, filteredSlots, handleToggleSlots]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -205,7 +222,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       return;
     }
     
-    const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
+    const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
     const slot = targetSlots[index];
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
@@ -265,7 +282,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [currentStatus]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => (
-    <div className="space-y-2 select-none">
+    <div className="space-y-2 select-none flex-1">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
           {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-600" /> : <Sunset className="h-3 w-3 text-blue-400" />}
@@ -275,9 +292,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       <div className={cn("flex h-12 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl", (!isEditable || isLoading) && "opacity-75")}>
         {timeSlots.map((slot, index) => {
           const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
-          const [slotH, slotM] = slot.time.split(":").map(Number);
-          const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
-
           const isInDragRange = dragStart !== null && dragEnd !== null && dragStart.type === type && dragEnd.type === type && index >= Math.min(dragStart.index, dragEnd.index) && index <= Math.max(dragStart.index, dragEnd.index);
 
           let visualE1 = existing.e1;
@@ -298,9 +312,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5",
-                isEditable && !isPast ? "cursor-pointer" : "cursor-default",
-                !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5",
-                isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
+                isEditable ? "cursor-pointer" : "cursor-default",
+                !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5"
               )}
             >
               <div className="flex flex-col h-full w-full overflow-hidden">
@@ -365,9 +378,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           )}
         </div>
       </div>
-      <div className="space-y-6">
-        {renderSlotsBar('morning', slots.morning)}
-        {renderSlotsBar('afternoon', slots.afternoon)}
+      <div className="flex flex-col md:flex-row gap-6">
+        {(!currentTime || currentTime.h < 13) && renderSlotsBar('morning', filteredSlots.morning)}
+        {renderSlotsBar('afternoon', filteredSlots.afternoon)}
       </div>
       <div className="flex justify-between items-center pt-4 text-[10px] font-black text-white border-t border-white/5">
         <div className="flex gap-6 uppercase tracking-widest">
