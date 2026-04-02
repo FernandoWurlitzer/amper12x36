@@ -64,12 +64,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
+      // Lógica solicitada: mostra duas barras até 12:59, depois só a tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
+      // Limpeza automática às 20:59
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -319,7 +321,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     <div className={cn("bg-card/40 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/10 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center bg-zinc-900 border border-black rounded-xl text-white font-black text-sm select-none shadow-lg shadow-black/50">
+          <div className="flex h-11 w-11 items-center justify-center bg-red-600 border border-black rounded-xl text-white font-black text-sm select-none shadow-lg shadow-black/50">
             {initials}
           </div>
           <div className="space-y-0.5">
@@ -383,7 +385,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
-      <div className="flex justify-between items-center pt-4 text-[10px] font-black text-muted-foreground border-t border-white/5">
+      <div className="flex justify-between items-center pt-4 text-[10px] font-black text-white border-t border-white/5">
         <div className="flex gap-6 uppercase tracking-widest">
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-red-600" /><span>Equipe 1</span></div>
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-emerald-500" /><span>Equipe 2</span></div>
