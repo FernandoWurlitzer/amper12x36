@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Clock, Coffee, Sunrise, Sunset, Trash2 } from "lucide-react";
+import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -47,12 +47,14 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Sincronização de Turnos:
-      // Exibe manhã se for antes das 14h, senão exibe tarde
-      if (hours < 14) {
+      // Exibe manhã se for antes das 13h, senão exibe tarde
+      if (hours < 13) {
         setVisibleShift('morning');
-      } else {
+      } else if (hours >= 14) {
         setVisibleShift('afternoon');
+      } else {
+        // Durante o almoço (13h-14h), mantém o último turno ou padrão
+        setVisibleShift(prev => prev || 'morning');
       }
     };
 
@@ -130,25 +132,36 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     });
   }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap]);
 
-  const handleClearAll = async () => {
-    if (!isEditable || !firestore || !scheduledBlocksRef) return;
-    
-    if (confirm(`Deseja limpar toda a agenda de ${technician.name}?`)) {
-      try {
-        const snapshot = await getDocs(scheduledBlocksRef);
-        snapshot.docs.forEach(d => {
-          deleteDocumentNonBlocking(d.ref);
-        });
-        toast({
-          title: "Agenda Limpa",
-          description: `Todos os horários de ${technician.name} foram liberados.`,
-        });
-      } catch (e) {}
+  const handleMouseUp = useCallback(() => {
+    if (dragStart !== null && dragEnd !== null && dragAction !== null && dragStart.type === dragEnd.type) {
+      const type = dragStart.type;
+      const min = Math.min(dragStart.index, dragEnd.index);
+      const max = Math.max(dragStart.index, dragEnd.index);
+      const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
+      const selectedRange = targetSlots.slice(min, max + 1);
+      handleToggleSlots(selectedRange, dragAction);
     }
-  };
+    setDragStart(null);
+    setDragEnd(null);
+    setDragAction(null);
+  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
+
+  useEffect(() => {
+    if (dragStart !== null) {
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => window.removeEventListener("mouseup", handleMouseUp);
+    }
+  }, [dragStart, handleMouseUp]);
 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
-    if (!isEditable) return;
+    if (!isEditable) {
+      toast({
+        variant: "destructive",
+        title: "Acesso Restrito",
+        description: "Você não tem permissão para editar a agenda do TAC.",
+      });
+      return;
+    }
     
     const time = type === 'morning' ? slots.morning[index] : slots.afternoon[index];
     const existingEquipe = occupiedSlotsMap[time];
@@ -187,44 +200,40 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
   };
 
-  const handleMouseUp = useCallback(() => {
-    if (dragStart !== null && dragEnd !== null && dragAction !== null && dragStart.type === dragEnd.type) {
-      const type = dragStart.type;
-      const min = Math.min(dragStart.index, dragEnd.index);
-      const max = Math.max(dragStart.index, dragEnd.index);
-      const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
-      const selectedRange = targetSlots.slice(min, max + 1);
-      handleToggleSlots(selectedRange, dragAction);
+  const handleClearAll = async () => {
+    if (!isEditable || !firestore || !scheduledBlocksRef) return;
+    
+    if (confirm(`Deseja limpar toda a agenda de ${technician.name}?`)) {
+      try {
+        const snapshot = await getDocs(scheduledBlocksRef);
+        snapshot.docs.forEach(d => {
+          deleteDocumentNonBlocking(d.ref);
+        });
+        toast({
+          title: "Agenda Limpa",
+          description: `Todos os horários de ${technician.name} foram liberados.`,
+        });
+      } catch (e) {}
     }
-    setDragStart(null);
-    setDragEnd(null);
-    setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
-
-  useEffect(() => {
-    if (dragStart !== null) {
-      window.addEventListener("mouseup", handleMouseUp);
-      return () => window.removeEventListener("mouseup", handleMouseUp);
-    }
-  }, [dragStart, handleMouseUp]);
+  };
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
-    <div className="space-y-0.5 select-none animate-in fade-in slide-in-from-top-1 duration-500">
+    <div className="space-y-1 select-none">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5 text-[7px] font-bold text-muted-foreground uppercase tracking-wider">
-          {type === 'morning' ? <Sunrise className="h-2 w-2 text-orange-400" /> : <Sunset className="h-2 w-2 text-blue-400" />}
+        <div className="flex items-center gap-1.5 text-[8px] font-bold text-muted-foreground uppercase tracking-wider">
+          {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-orange-400" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
           {type === 'morning' ? 'Turno 1 (08:00 - 13:00)' : 'Turno 2 (14:00 - 20:00)'}
         </div>
         {type === 'morning' && (
-          <div className="flex items-center gap-1 text-[6px] font-black text-primary/60 uppercase">
-            <Coffee className="h-2 w-2" />
+          <div className="flex items-center gap-1 text-[7px] font-black text-primary/60 uppercase">
+            <Coffee className="h-2.5 w-2.5" />
             Intervalo 13h - 14h
           </div>
         )}
       </div>
       <div className={cn(
-        "flex h-12 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
-        (!isEditable || isLoading) && "cursor-not-allowed"
+        "flex h-11 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
+        (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((time, index) => {
           const equipeId = occupiedSlotsMap[time];
@@ -254,8 +263,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             }
           }
 
-          const dragDistance = (dragStart !== null && isInDragRange) ? Math.abs(index - dragStart.index) : 0;
-
           return (
             <div
               key={time}
@@ -264,30 +271,28 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 handleMouseDown(type, index);
               }}
               onMouseEnter={() => handleMouseEnter(type, index)}
-              style={{ transitionDelay: isInDragRange ? `${dragDistance * 10}ms` : '0ms' }}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-200 border-r border-border/40 last:border-r-0 hover:z-10",
+                "group flex-1 relative flex items-center justify-center transition-all duration-150 border-r border-border/40 last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 isHourStart && !visualOccupied && "border-l border-l-white/10",
                 visualOccupied 
-                  ? (visualEquipe === 2 ? "bg-green-500 shadow-inner" : "bg-accent shadow-inner") 
-                  : "bg-available/20 hover:bg-available/40",
-                isInDragRange && dragAction === 'free' && (activeEquipe === null || equipeId === activeEquipe) && "bg-muted/40 ring-2 ring-inset ring-accent/20",
+                  ? (visualEquipe === 2 ? "bg-green-500" : "bg-primary") 
+                  : "bg-transparent hover:bg-white/5",
+                isInDragRange && dragAction === 'free' && "bg-destructive/20 ring-2 ring-inset ring-destructive/40",
                 isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
               )}
             >
               {visualOccupied ? (
-                <span className="text-[9px] font-black text-white drop-shadow-sm pointer-events-none select-none">
+                <span className="text-[10px] font-black text-white pointer-events-none select-none">
                   E{visualEquipe}
                 </span>
               ) : (
                 isHourStart && (
-                  <div className="text-[7px] font-black leading-none select-none pointer-events-none text-white/50">
+                  <div className="text-[8px] font-black leading-none select-none pointer-events-none text-white/30">
                     {time}
                   </div>
                 )
               )}
-              <span className="sr-only">{time}</span>
             </div>
           );
         })}
@@ -297,13 +302,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
   return (
     <div className={cn(
-      "bg-card border rounded-xl p-3 space-y-2 shadow-sm hover:shadow-md transition-all duration-300 select-none", 
-      isLoading && "opacity-50 animate-pulse",
+      "bg-card border rounded-xl p-3 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", 
+      isLoading && "opacity-50",
       compact && "p-2"
     )}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none shadow-sm shadow-primary/20">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none">
             {initials}
           </div>
           <h3 className="font-bold text-sm text-foreground tracking-tight uppercase">{technician.name}</h3>
@@ -311,40 +316,40 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         
         <div className="flex items-center gap-4">
           {isEditable && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
-                  activeEquipe === 1 ? "bg-accent/20 border-accent/40 ring-1 ring-accent/20" : "bg-muted/20 border-transparent",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95",
+                  activeEquipe === 1 ? "bg-primary/20 border-primary shadow-lg shadow-primary/10" : "bg-muted/30 border-transparent",
                   isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
-                <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 1 ? "bg-accent shadow-[0_0_8px_hsl(var(--accent))]" : "bg-muted")} />
-                <span className={cn("text-[10px] font-black uppercase tracking-wider", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
+                <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 1 ? "bg-primary" : "bg-muted")} />
+                <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
 
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-all hover:opacity-80 active:scale-95 group",
-                  activeEquipe === 2 ? "bg-green-500/20 border-green-500/40 ring-1 ring-green-500/20" : "bg-muted/20 border-transparent",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95",
+                  activeEquipe === 2 ? "bg-green-500/20 border-green-500 shadow-lg shadow-green-500/10" : "bg-muted/30 border-transparent",
                   isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
-                <div className={cn("w-2 h-2 rounded-full border border-white/10", activeEquipe === 2 ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-muted")} />
-                <span className={cn("text-[10px] font-black uppercase tracking-wider", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
+                <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 2 ? "bg-green-500" : "bg-muted")} />
+                <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
 
-              <div className="w-px h-6 bg-border/40 mx-1" />
+              <div className="w-px h-6 bg-border mx-2" />
 
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleClearAll}
-                className="h-7 text-[9px] gap-1 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-wider transition-colors"
+                className="h-8 text-[10px] gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 uppercase font-black tracking-widest"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
                 Limpar
               </Button>
             </div>
@@ -352,30 +357,27 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-3">
         {(!visibleShift || visibleShift === 'morning') && renderSlotsBar('morning', slots.morning)}
         {(!visibleShift || visibleShift === 'afternoon') && renderSlotsBar('afternoon', slots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-1 text-[8px] text-muted-foreground border-t border-border/10 mt-1">
+      <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/10">
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-accent shadow-[0_0_4px_hsl(var(--accent)/0.5)]" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
             <span>Equipe 1</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
             <span>Equipe 2</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-sm bg-available/40 border border-white/5" />
+            <div className="w-2.5 h-2.5 rounded-sm border border-white/20" />
             <span>Livre</span>
           </div>
         </div>
-        <p className={cn(
-          "font-black text-[7px] uppercase tracking-[0.1em] transition-colors duration-300",
-          isEditable ? (activeEquipe === null ? "text-primary/70" : "text-white/60") : "text-white/20"
-        )}>
+        <p className="font-black text-[8px] uppercase tracking-widest text-primary/60">
           {isEditable ? (activeEquipe === null ? "SELECIONE EQUIPE PARA MARCAR" : "CLIQUE E ARRASTE PARA OCUPAR") : "MODO VISUALIZAÇÃO"}
         </p>
       </div>
