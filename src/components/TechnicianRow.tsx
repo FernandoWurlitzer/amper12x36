@@ -29,7 +29,7 @@ interface TechnicianProfile {
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = user();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -303,7 +303,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group relative flex-1 flex items-center justify-center transition-all duration-75",
-                isHourStart ? "border-l-[3px] border-white/40" : "border-l border-white/15",
+                isHourStart ? "border-l-[4px] border-white/50" : "border-l-2 border-white/20",
                 "first:border-l-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
