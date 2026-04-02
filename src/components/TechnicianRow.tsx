@@ -105,14 +105,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const slots = useMemo(() => {
     const morning = [];
     const afternoon = [];
-    // Morning: 08:00 to 13:00 - 4 blocks per hour (00, 15, 30, 45)
     for (let h = 8; h < 13; h++) {
       morning.push(`${h.toString().padStart(2, "0")}:00`);
       morning.push(`${h.toString().padStart(2, "0")}:15`);
       morning.push(`${h.toString().padStart(2, "0")}:30`);
       morning.push(`${h.toString().padStart(2, "0")}:45`);
     }
-    // Afternoon: 14:00 to 20:00 - 4 blocks per hour (00, 15, 30, 45)
     for (let h = 14; h < 20; h++) {
       afternoon.push(`${h.toString().padStart(2, "0")}:00`);
       afternoon.push(`${h.toString().padStart(2, "0")}:15`);
@@ -271,13 +269,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
           
           const minutes = time.split(":")[1];
-          let displayLabel = "";
-          if (isHourStart) {
-            displayLabel = time;
-          } else {
-            if (minutes === "30") displayLabel = "30";
-            if (minutes === "45") displayLabel = "45";
-          }
+          let displayLabel = isHourStart ? time : minutes;
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
