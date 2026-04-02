@@ -211,7 +211,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     <div className="space-y-2 select-none">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
-          {type === 'morning' ? <Sunrise className="h-3 w-3 text-orange-400" /> : <Sunset className="h-3 w-3 text-blue-400" />}
+          {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-500" /> : <Sunset className="h-3 w-3 text-blue-400" />}
           {type === 'morning' ? 'Turno 1 (08h - 13h)' : 'Turno 2 (14h - 20h)'}
         </div>
       </div>
@@ -250,11 +250,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-75 border-r",
-                isHourStart ? "border-white/25" : "border-white/10",
+                isHourStart ? "border-white/30" : "border-white/10",
                 "last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
-                  ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-orange-500") 
+                  ? (visualEquipe === 2 ? "bg-emerald-500" : "bg-red-600") 
                   : "bg-transparent hover:bg-white/5",
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
@@ -263,7 +263,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 {isHourStart && (
                   <div className={cn(
                     "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors",
-                    visualOccupied ? "text-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,1)]" : "text-white/40"
+                    visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/50"
                   )}>
                     {time}
                   </div>
@@ -280,7 +280,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     <div className={cn("bg-card/50 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/20 transition-all duration-500", isLoading && "opacity-50", compact && "p-3")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center bg-primary/10 border border-primary/20 rounded-xl text-primary font-black text-sm select-none">{initials}</div>
+          <div className="flex h-11 w-11 items-center justify-center bg-primary/10 border border-white rounded-xl text-primary font-black text-sm select-none">
+            {initials}
+          </div>
           <div className="space-y-0.5">
             <h3 className="font-black text-base text-foreground tracking-tight uppercase">{technician.name}</h3>
             <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">Status: Operacional</p>
@@ -294,12 +296,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 className={cn(
                   "flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all", 
                   activeEquipe === 1 
-                    ? "bg-orange-500 border-orange-400 text-white shadow-lg shadow-orange-500/20" 
+                    ? "bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20" 
                     : "bg-zinc-800/40 border-white/5 hover:bg-zinc-700/60", 
                   isSelectionError && activeEquipe === null && "animate-blink ring-4 ring-primary/50"
                 )}
               >
-                <div className={cn("w-3 h-3 rounded-full", activeEquipe === 1 ? "bg-white" : "bg-orange-500")} />
+                <div className={cn("w-3 h-3 rounded-full", activeEquipe === 1 ? "bg-white" : "bg-red-600")} />
                 <span className={cn("text-xs font-black uppercase tracking-widest", activeEquipe === 1 ? "text-white" : "text-muted-foreground")}>E1</span>
               </button>
               <button 
@@ -334,11 +336,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       </div>
       <div className="flex justify-between items-center pt-4 text-[10px] font-black text-muted-foreground border-t border-white/5">
         <div className="flex gap-6 uppercase tracking-widest">
-          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-orange-500" /><span>Equipe 1</span></div>
+          <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-red-600" /><span>Equipe 1</span></div>
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-emerald-500" /><span>Equipe 2</span></div>
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Disponível</span></div>
         </div>
-        <p className="font-black text-[9px] uppercase tracking-[0.3em] text-primary/80 animate-pulse">
+        <p className="font-black text-[9px] uppercase tracking-[0.3em] text-white animate-pulse">
           {isEditable ? (activeEquipe === null ? "Selecione uma equipe para marcar" : "Pressione e arraste na barra") : "Modo de Visualização (TAC)"}
         </p>
       </div>
