@@ -234,7 +234,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         )}
       </div>
       <div className={cn(
-        "flex h-11 items-stretch border border-border rounded-lg overflow-hidden bg-muted/5 shadow-inner",
+        "flex h-11 items-stretch border border-border/60 rounded-lg overflow-hidden bg-black/40 shadow-inner backdrop-blur-sm",
         (!isEditable || isLoading) && "opacity-75"
       )}>
         {timeSlots.map((time, index) => {
@@ -267,19 +267,19 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
-                "group flex-1 relative flex items-center justify-center transition-all duration-150 border-r border-border/40 last:border-r-0",
+                "group flex-1 relative flex items-center justify-center transition-all duration-150 border-r border-white/5 last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
                 visualOccupied 
-                  ? (visualEquipe === 2 ? "bg-green-500" : "bg-primary") 
+                  ? (visualEquipe === 2 ? "bg-emerald-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]" : "bg-orange-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]") 
                   : "bg-transparent hover:bg-white/5",
-                isPast && "opacity-25 grayscale-[0.6] pointer-events-none"
+                isPast && "opacity-20 grayscale-[0.8] pointer-events-none"
               )}
             >
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
                 {isHourStart && (
                   <div className={cn(
-                    "text-[8px] font-black absolute inset-0 flex items-center justify-center",
-                    visualOccupied ? "text-white/90" : "text-muted-foreground/50"
+                    "text-[8px] font-black absolute inset-0 flex items-center justify-center tracking-tighter",
+                    visualOccupied ? "text-white/95 drop-shadow-md" : "text-muted-foreground/40"
                   )}>
                     {time}
                   </div>
@@ -296,7 +296,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     <div className={cn("bg-card border rounded-xl p-3 space-y-3 shadow-sm hover:shadow-md transition-all duration-300", isLoading && "opacity-50", compact && "p-2")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary rounded-lg text-primary font-bold text-xs select-none">{initials}</div>
+          <div className="flex h-9 w-9 items-center justify-center bg-primary/10 border border-primary/40 rounded-lg text-primary font-bold text-xs select-none">{initials}</div>
           <h3 className="font-bold text-sm text-foreground tracking-tight uppercase">{technician.name}</h3>
         </div>
         <div className="flex items-center gap-4">
@@ -306,22 +306,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} 
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
-                  activeEquipe === 1 ? "bg-primary/20 border-primary" : "bg-muted/30 border-transparent", 
+                  activeEquipe === 1 ? "bg-orange-600/30 border-orange-500 ring-1 ring-orange-500/50" : "bg-muted/30 border-transparent", 
                   isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
-                <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 1 ? "bg-primary" : "bg-muted")} />
+                <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", activeEquipe === 1 ? "bg-orange-500" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 1 ? "text-foreground" : "text-muted-foreground")}>E1</span>
               </button>
               <button 
                 onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} 
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all", 
-                  activeEquipe === 2 ? "bg-green-500/20 border-green-500" : "bg-muted/30 border-transparent", 
+                  activeEquipe === 2 ? "bg-emerald-600/30 border-emerald-500 ring-1 ring-emerald-500/50" : "bg-muted/30 border-transparent", 
                   isSelectionError && activeEquipe === null && "animate-blink ring-2 ring-primary"
                 )}
               >
-                <div className={cn("w-2.5 h-2.5 rounded-full", activeEquipe === 2 ? "bg-green-500" : "bg-muted")} />
+                <div className={cn("w-2.5 h-2.5 rounded-full shadow-sm", activeEquipe === 2 ? "bg-emerald-500" : "bg-muted")} />
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", activeEquipe === 2 ? "text-foreground" : "text-muted-foreground")}>E2</span>
               </button>
               <div className="w-px h-6 bg-border mx-2" />
@@ -343,8 +343,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       </div>
       <div className="flex justify-between items-center pt-2 text-[9px] text-muted-foreground border-t border-border/10">
         <div className="flex gap-4">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-primary" /><span>Equipe 1</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-green-500" /><span>Equipe 2</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-orange-600" /><span>Equipe 1</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-600" /><span>Equipe 2</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm border border-white/20" /><span>Livre</span></div>
         </div>
         <p className="font-black text-[8px] uppercase tracking-widest text-primary/60">
