@@ -107,6 +107,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         arr.push({ type: 'slot', time: `${hStr}:30`, key: `${hStr}:30`, label: `30`, isHourStart: false, minute: 30 });
         arr.push({ type: 'slot', time: `${hStr}:45`, key: `${hStr}:45`, label: `45`, isHourStart: false, minute: 45 });
       }
+      // Add the final closing hour :00 slot
+      const lastH = end.toString().padStart(2, "0");
+      arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, minute: 0 });
     };
 
     generateShift(8, 13, morning);
@@ -151,20 +154,24 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const max = Math.max(dragStart.index, dragEnd.index);
       const targetSlots = type === 'morning' ? slots.morning : slots.afternoon;
       
-      const selectedKeysSet = new Set<string>();
+      const keysToUpdate = new Set<string>();
       targetSlots.slice(min, max + 1).forEach((s) => {
-        selectedKeysSet.add(s.key);
-        // Regra de negócio: Se marcar ou desmarcar 15 ou 45, faz o mesmo com o respectivo 00 ou 30
+        keysToUpdate.add(s.key);
+        
+        // Linkage logic:
+        // - 15 mins marks the 00 min of the same hour.
+        // - 45 mins marks the 00 min of the NEXT hour.
         if (s.minute === 15) {
           const hStr = s.time.split(":")[0];
-          selectedKeysSet.add(`${hStr}:00`);
+          keysToUpdate.add(`${hStr}:00`);
         } else if (s.minute === 45) {
           const hStr = s.time.split(":")[0];
-          selectedKeysSet.add(`${hStr}:30`);
+          const nextHour = (parseInt(hStr) + 1).toString().padStart(2, '0');
+          keysToUpdate.add(`${nextHour}:00`);
         }
       });
 
-      handleToggleSlots(Array.from(selectedKeysSet), dragAction);
+      handleToggleSlots(Array.from(keysToUpdate), dragAction);
     }
     setDragStart(null);
     setDragEnd(null);
@@ -281,9 +288,19 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 isPast && "opacity-30 grayscale-[0.6] pointer-events-none"
               )}
             >
-              <div className="flex flex-col h-full w-full">
-                <div className={cn("transition-all h-full", visualE1 && "bg-red-600", visualE1 && visualE2 && "h-1/2")} />
-                <div className={cn("transition-all h-full", visualE2 && "bg-emerald-500", visualE1 && visualE2 && "h-1/2")} />
+              <div className="flex flex-col h-full w-full overflow-hidden">
+                {visualE1 && (
+                  <div className={cn(
+                    "bg-red-600 transition-all duration-300",
+                    visualE2 ? "h-1/2" : "h-full"
+                  )} />
+                )}
+                {visualE2 && (
+                  <div className={cn(
+                    "bg-emerald-500 transition-all duration-300",
+                    visualE1 ? "h-1/2" : "h-full"
+                  )} />
+                )}
               </div>
               
               <span className={cn(
