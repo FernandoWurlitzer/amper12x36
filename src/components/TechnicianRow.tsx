@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { Clock, Coffee, Sunrise, Sunset, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
-import { useFirestore, useCollection, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, serverTimestamp, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,10 @@ interface ScheduledBlockData {
   markedByUserId: string;
 }
 
+interface TechnicianProfile {
+  status?: "OPERACIONAL" | "INDISPONÍVEL" | "SOBREAVISO";
+}
+
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -36,12 +40,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
+  // Referência para os blocos agendados
   const scheduledBlocksRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
   }, [firestore, technician.id]);
 
   const { data: blocksData, isLoading } = useCollection<ScheduledBlockData>(scheduledBlocksRef);
+
+  // Referência para o perfil do técnico/cidade (para o Status)
+  const techProfileRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'technicians', technician.id);
+  }, [firestore, technician.id]);
+
+  const { data: profileData } = useDoc<TechnicianProfile>(techProfileRef);
+  const currentStatus = profileData?.status || "OPERACIONAL";
 
   useEffect(() => {
     const updateTime = () => {
@@ -51,14 +65,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Até 12:59 mostra as duas barras, depois somente a tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
-      // Limpeza automática às 20:59
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -207,11 +219,39 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     }
   };
 
+  const handleStatusToggle = () => {
+    if (!isEditable || !techProfileRef) return;
+    
+    const statuses: Array<TechnicianProfile["status"]> = ["OPERACIONAL", "INDISPONÍVEL", "SOBREAVISO"];
+    const currentIndex = statuses.indexOf(currentStatus as any);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+
+    setDocumentNonBlocking(techProfileRef, {
+      status: nextStatus,
+      updatedAt: serverTimestamp(),
+      name: technician.name // Garante que o documento tenha o nome se estiver sendo criado agora
+    }, { merge: true });
+    
+    toast({
+      title: "Status Atualizado",
+      description: `${technician.name} está agora ${nextStatus}.`,
+    });
+  };
+
+  const statusColor = useMemo(() => {
+    switch (currentStatus) {
+      case "OPERACIONAL": return "text-emerald-500";
+      case "INDISPONÍVEL": return "text-red-600";
+      case "SOBREAVISO": return "text-yellow-500";
+      default: return "text-emerald-500";
+    }
+  }, [currentStatus]);
+
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: string[]) => (
     <div className="space-y-2 select-none">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">
-          {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-500" /> : <Sunset className="h-3 w-3 text-blue-400" />}
+          {type === 'morning' ? <Sunrise className="h-3 w-3 text-red-600" /> : <Sunset className="h-3 w-3 text-blue-400" />}
           {type === 'morning' ? 'Turno 1 (08h - 13h)' : 'Turno 2 (14h - 20h)'}
         </div>
       </div>
@@ -262,7 +302,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
                 {isHourStart && (
                   <div className={cn(
-                    "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors",
+                    "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
                     visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/50"
                   )}>
                     {time}
@@ -285,7 +325,17 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           </div>
           <div className="space-y-0.5">
             <h3 className="font-black text-base text-foreground tracking-tight uppercase">{technician.name}</h3>
-            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">Status: Operacional</p>
+            <div 
+              className={cn(
+                "flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest",
+                isEditable && "cursor-pointer hover:opacity-80 transition-opacity"
+              )}
+              onClick={handleStatusToggle}
+            >
+              <span className="text-white">STATUS:</span>
+              <span className={cn("font-black", statusColor)}>{currentStatus}</span>
+              {isEditable && <div className="h-1 w-1 bg-white/20 rounded-full" />}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -322,7 +372,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 variant="ghost" 
                 size="sm" 
                 onClick={(e) => { e.stopPropagation(); handleClearAll(); }} 
-                className="h-10 text-[10px] gap-2 text-muted-foreground hover:text-white hover:bg-destructive uppercase font-black tracking-[0.2em] rounded-xl px-4 transition-all"
+                className="h-10 text-[10px] gap-2 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black tracking-[0.2em] rounded-xl px-4 transition-all"
               >
                 <Trash2 className="h-4 w-4" /> LIMPAR
               </Button>
@@ -341,7 +391,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           <div className="flex items-center gap-2"><div className="w-3.5 h-3.5 rounded-md bg-zinc-800/40 border border-white/10" /><span>Disponível</span></div>
         </div>
         <p className="font-black text-[9px] uppercase tracking-[0.3em] text-white animate-pulse">
-          {isEditable ? (activeEquipe === null ? "Selecione uma equipe para marcar" : "Pressione e arraste na barra") : "Modo de Visualização (TAC)"}
+          {isEditable ? (activeEquipe === null ? "SELECIONE UMA EQUIPE PARA MARCAR" : "Pressione e arraste na barra") : "Modo de Visualização (TAC)"}
         </p>
       </div>
     </div>
