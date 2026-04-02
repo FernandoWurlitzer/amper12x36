@@ -48,8 +48,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       setCurrentTime({ h: hours, m: minutes });
 
       // Sincronização de Turnos:
-      // Manhã (08:00 - 13:00) exibida até as 13:59
-      // Tarde (14:00 - 20:00) exibida a partir das 14:00
+      // Exibe manhã se for antes das 14h, senão exibe tarde
       if (hours < 14) {
         setVisibleShift('morning');
       } else {
@@ -58,7 +57,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 60000); // Atualiza a cada minuto
+    const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -107,7 +106,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return { morning, afternoon };
   }, []);
 
-  const handleToggleSlots = (slotIds: string[], action: 'occupy' | 'free') => {
+  const handleToggleSlots = useCallback((slotIds: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
 
     slotIds.forEach(time => {
@@ -129,7 +128,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         }
       }
     });
-  };
+  }, [isEditable, user, firestore, technician.id, activeEquipe, occupiedSlotsMap]);
 
   const handleClearAll = async () => {
     if (!isEditable || !firestore || !scheduledBlocksRef) return;
@@ -200,7 +199,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, slots, activeEquipe, occupiedSlotsMap, isEditable, user, firestore]);
+  }, [dragStart, dragEnd, dragAction, slots, handleToggleSlots]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -383,4 +382,3 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     </div>
   );
 }
-
