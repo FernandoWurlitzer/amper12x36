@@ -39,7 +39,7 @@ interface SlotDefinition {
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = userUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
