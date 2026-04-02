@@ -64,14 +64,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       
       setCurrentTime({ h: hours, m: minutes });
 
-      // Lógica: mostra duas barras até 12:59, depois só a tarde
       if (hours < 13) {
         setVisibleShift(null);
       } else {
         setVisibleShift('afternoon');
       }
 
-      // Limpeza automática às 20:59
       if (hours === 20 && minutes === 59 && isEditable && scheduledBlocksRef) {
         getDocs(scheduledBlocksRef).then(snapshot => {
           snapshot.docs.forEach(d => deleteDocumentNonBlocking(d.ref));
@@ -266,6 +264,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           const isHourStart = time.endsWith(":00");
           const [slotH, slotM] = time.split(":").map(Number);
           const isPast = currentTime && (currentTime.h > slotH || (currentTime.h === slotH && currentTime.m > slotM));
+          
+          const minutesLabel = time.split(":")[1];
+          const displayLabel = isHourStart ? time : minutesLabel;
 
           const isInDragRange = dragStart !== null && dragEnd !== null && 
             dragStart.type === type && dragEnd.type === type &&
@@ -291,7 +292,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               onMouseEnter={() => handleMouseEnter(type, index)}
               className={cn(
                 "group flex-1 relative flex items-center justify-center transition-all duration-75",
-                // Linhas engroçadas
                 isHourStart ? "border-r-2 border-white/40" : "border-r border-white/15",
                 "last:border-r-0",
                 isEditable && !isPast ? "cursor-pointer" : "cursor-default",
@@ -302,14 +302,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
               )}
             >
               <div className="flex flex-col items-center justify-center h-full w-full pointer-events-none">
-                {isHourStart && (
-                  <div className={cn(
-                    "text-[10px] font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
-                    visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40"
-                  )}>
-                    {time}
-                  </div>
-                )}
+                <div className={cn(
+                  "font-black absolute inset-0 flex items-center justify-center tracking-tighter transition-colors z-10",
+                  visualOccupied ? "text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)]" : "text-white/40",
+                  isHourStart ? "text-[10px]" : "text-[8px] opacity-70"
+                )}>
+                  {displayLabel}
+                </div>
               </div>
             </div>
           );
