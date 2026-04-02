@@ -49,7 +49,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   
   const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
   const [isSelectionError, setIsSelectionError] = useState(false);
-  const [visibleShift, setVisibleShift] = useState<'morning' | 'afternoon' | null>(null);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
 
   const scheduledBlocksRef = useMemoFirebase(() => {
@@ -119,22 +118,31 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
     const keysToProcess = new Set(slotKeys);
 
-    // Regra de vínculo: 15 e 45 ativam/desativam a hora exata (:00)
+    // Lógica de Vínculo
     slotKeys.forEach(k => {
-      const [h, m] = k.split(':');
+      const [hStr, mStr] = k.split(':');
+      const h = parseInt(hStr);
+      const m = parseInt(mStr);
+
       if (action === 'occupy') {
-        if (m === '15' || m === '45') {
-          keysToProcess.add(`${h}:00`);
+        if (m === 15) keysToProcess.add(`${hStr}:00`);
+        if (m === 45) {
+          const nextH = (h + 1).toString().padStart(2, '0');
+          keysToProcess.add(`${nextH}:00`);
         }
       } else {
-        // Na desmarcação, só desmarca :00 se o "irmão" (15 ou 45) também estiver livre
-        if (m === '15') {
-          const is45Marked = occupiedSlotsMap[`${h}:45`]?.e1 || occupiedSlotsMap[`${h}:45`]?.e2;
-          if (!is45Marked) keysToProcess.add(`${h}:00`);
+        // Desmarcação: Regras de Proteção
+        if (m === 15) {
+          // Só desmarca HH:00 se o 45 da hora ANTERIOR não estiver ocupado
+          const prevH = (h - 1).toString().padStart(2, '0');
+          const isPrev45Occupied = occupiedSlotsMap[`${prevH}:45`]?.e1 || occupiedSlotsMap[`${prevH}:45`]?.e2;
+          if (!isPrev45Occupied) keysToProcess.add(`${hStr}:00`);
         }
-        if (m === '45') {
-          const is15Marked = occupiedSlotsMap[`${h}:15`]?.e1 || occupiedSlotsMap[`${h}:15`]?.e2;
-          if (!is15Marked) keysToProcess.add(`${h}:00`);
+        if (m === 45) {
+          // Só desmarca (HH+1):00 se o 15 da próxima hora não estiver ocupado
+          const nextH = (h + 1).toString().padStart(2, '0');
+          const isNext15Occupied = occupiedSlotsMap[`${nextH}:15`]?.e1 || occupiedSlotsMap[`${nextH}:15`]?.e2;
+          if (!isNext15Occupied) keysToProcess.add(`${nextH}:00`);
         }
       }
     });
@@ -281,6 +289,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             else if (activeEquipe === null) { visualE1 = false; visualE2 = false; }
           }
 
+          const hasBoth = visualE1 && visualE2;
+
           return (
             <div
               key={slot.key}
@@ -297,13 +307,13 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 {visualE1 && (
                   <div className={cn(
                     "bg-red-600 transition-all duration-300",
-                    !visualE2 ? "h-full" : "h-1/2"
+                    hasBoth ? "h-1/2" : "h-full"
                   )} />
                 )}
                 {visualE2 && (
                   <div className={cn(
                     "bg-emerald-500 transition-all duration-300",
-                    !visualE1 ? "h-full" : "h-1/2"
+                    hasBoth ? "h-1/2" : "h-full"
                   )} />
                 )}
               </div>
