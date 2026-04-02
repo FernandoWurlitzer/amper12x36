@@ -350,7 +350,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 
                 <span className={cn(
                   "absolute inset-0 flex items-center justify-center text-[9px] font-black tracking-tighter uppercase pointer-events-none",
-                  (visualE1 || visualE2) ? "text-white drop-shadow-md" : "text-muted-foreground/50"
+                  isSlotPast ? "text-muted-foreground/30" : "text-white"
                 )}>
                   {slot.label}
                 </span>
