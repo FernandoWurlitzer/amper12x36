@@ -3,7 +3,7 @@
 
 import { TechnicianRow } from "./TechnicianRow";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Lock, Copy, CheckCircle2, Loader2, MousePointer2, ShieldCheck, Eye } from "lucide-react";
+import { Lock, Copy, CheckCircle2, Loader2, ShieldCheck, Eye } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -18,11 +18,11 @@ interface ScheduleManagerProps {
   isFullscreen?: boolean;
 }
 
-// Cidades fixas conforme solicitado
+// Técnicos e Cidades conforme solicitado
 const CITIES: Technician[] = [
-  { id: "francisco-beltrao", name: "Francisco Beltrão" },
-  { id: "ponta-grossa", name: "Ponta Grossa" },
-  { id: "pato-branco", name: "Pato Branco" },
+  { id: "francisco-beltrao", name: "ROMEU (F. Beltrão)" },
+  { id: "ponta-grossa", name: "ERIC (P. Grossa)" },
+  { id: "pato-branco", name: "EDERSON (P. Branco)" },
 ];
 
 export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) {
@@ -108,15 +108,15 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
       )}
 
       <div className={cn(
-        "grid grid-cols-1 gap-3",
-        isFullscreen && "gap-2"
+        "grid grid-cols-1 gap-6",
+        isFullscreen && "gap-3"
       )}>
         {CITIES.map((city) => (
           <TechnicianRow
             key={city.id}
             technician={city}
             isEditable={isTacMember}
-            compact={true}
+            compact={isFullscreen}
           />
         ))}
       </div>
