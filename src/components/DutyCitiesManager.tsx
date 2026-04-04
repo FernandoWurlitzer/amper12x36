@@ -10,12 +10,11 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from "@/firebase";
-import { collection, doc, query, orderBy } from "firebase/firestore";
+import { collection, doc, query, orderBy, CollectionReference } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog,
   DialogContent,
@@ -25,10 +24,8 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { 
-  MapPin, 
   Plus, 
   X, 
-  Activity, 
   CalendarCheck,
   Building2,
   CheckCircle2
@@ -62,15 +59,22 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
   const [selectedBases, setSelectedBases] = useState<string[]>([]);
   const [customCity, setCustomCity] = useState("");
 
-  const dutyCitiesRef = useMemoFirebase(() => {
+  // Referência base da coleção para operações de escrita
+  const dutyCitiesCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'dutyCities'), orderBy('createdAt', 'desc'));
+    return collection(firestore, 'dutyCities');
   }, [firestore]);
 
-  const { data: cities, isLoading } = useCollection<DutyCity>(dutyCitiesRef);
+  // Consulta para exibição dos dados (com ordenação)
+  const dutyCitiesQuery = useMemoFirebase(() => {
+    if (!dutyCitiesCollectionRef) return null;
+    return query(dutyCitiesCollectionRef, orderBy('createdAt', 'desc'));
+  }, [dutyCitiesCollectionRef]);
+
+  const { data: cities, isLoading } = useCollection<DutyCity>(dutyCitiesQuery);
 
   const handleAddCities = () => {
-    if (!dutyCitiesRef) return;
+    if (!dutyCitiesCollectionRef || !firestore) return;
 
     const citiesToAdd = [...selectedBases];
     if (customCity.trim()) {
@@ -80,19 +84,17 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
     if (citiesToAdd.length === 0) return;
 
     citiesToAdd.forEach(cityName => {
-      // Verifica se a cidade já existe na lista para evitar duplicatas visuais
       const alreadyExists = cities?.some(c => c.name === cityName);
       if (!alreadyExists) {
-        addDocumentNonBlocking(dutyCitiesRef as any, {
+        addDocumentNonBlocking(dutyCitiesCollectionRef as CollectionReference, {
           name: cityName,
           isActive: true,
           createdAt: new Date().toISOString()
         });
       } else {
-        // Se já existe, apenas garante que está ativa
         const existingCity = cities?.find(c => c.name === cityName);
         if (existingCity && !existingCity.isActive) {
-          const cityRef = doc(firestore!, 'dutyCities', existingCity.id);
+          const cityRef = doc(firestore, 'dutyCities', existingCity.id);
           updateDocumentNonBlocking(cityRef, { isActive: true });
         }
       }
