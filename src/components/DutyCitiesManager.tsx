@@ -15,15 +15,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { 
   MapPin, 
   Plus, 
   X, 
   Activity, 
   CalendarCheck,
-  Building2
+  Building2,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface DutyCity {
   id: string;
@@ -36,9 +47,20 @@ interface DutyCitiesManagerProps {
   isEditable: boolean;
 }
 
+const PREDEFINED_BASES = [
+  "AMPÉRE",
+  "SÃO LOURENÇO D'OESTE",
+  "ARAUCÁRIA",
+  "GUAÍRA",
+  "MUNDO NOVO"
+];
+
 export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
   const firestore = useFirestore();
-  const [newCityName, setNewCityName] = useState("");
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedBases, setSelectedBases] = useState<string[]>([]);
+  const [customCity, setCustomCity] = useState("");
 
   const dutyCitiesRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -47,16 +69,43 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
 
   const { data: cities, isLoading } = useCollection<DutyCity>(dutyCitiesRef);
 
-  const handleAddCity = () => {
-    if (!newCityName.trim() || !dutyCitiesRef) return;
-    
-    addDocumentNonBlocking(dutyCitiesRef as any, {
-      name: newCityName.trim().toUpperCase(),
-      isActive: true,
-      createdAt: new Date().toISOString()
+  const handleAddCities = () => {
+    if (!dutyCitiesRef) return;
+
+    const citiesToAdd = [...selectedBases];
+    if (customCity.trim()) {
+      citiesToAdd.push(customCity.trim().toUpperCase());
+    }
+
+    if (citiesToAdd.length === 0) return;
+
+    citiesToAdd.forEach(cityName => {
+      // Verifica se a cidade já existe na lista para evitar duplicatas visuais
+      const alreadyExists = cities?.some(c => c.name === cityName);
+      if (!alreadyExists) {
+        addDocumentNonBlocking(dutyCitiesRef as any, {
+          name: cityName,
+          isActive: true,
+          createdAt: new Date().toISOString()
+        });
+      } else {
+        // Se já existe, apenas garante que está ativa
+        const existingCity = cities?.find(c => c.name === cityName);
+        if (existingCity && !existingCity.isActive) {
+          const cityRef = doc(firestore!, 'dutyCities', existingCity.id);
+          updateDocumentNonBlocking(cityRef, { isActive: true });
+        }
+      }
     });
-    
-    setNewCityName("");
+
+    toast({
+      title: "Bases Atualizadas",
+      description: `${citiesToAdd.length} cidade(s) configurada(s) para o plantão.`,
+    });
+
+    setSelectedBases([]);
+    setCustomCity("");
+    setIsDialogOpen(false);
   };
 
   const toggleCityStatus = (cityId: string, currentStatus: boolean) => {
@@ -69,6 +118,12 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
     if (!firestore || !isEditable) return;
     const cityRef = doc(firestore, 'dutyCities', cityId);
     deleteDocumentNonBlocking(cityRef);
+  };
+
+  const toggleBaseSelection = (base: string) => {
+    setSelectedBases(prev => 
+      prev.includes(base) ? prev.filter(b => b !== base) : [...prev, base]
+    );
   };
 
   const activeCities = cities?.filter(c => c.isActive) || [];
@@ -84,11 +139,79 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
             Plantão Hoje - Cidades Ativas
           </h2>
         </div>
-        {activeCities.length > 0 && (
-          <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20 bg-primary/5 text-primary tracking-widest px-3">
-            {activeCities.length} BASES OPERACIONAIS
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          {activeCities.length > 0 && (
+            <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20 bg-primary/5 text-primary tracking-widest px-3">
+              {activeCities.length} BASES OPERACIONAIS
+            </Badge>
+          )}
+          
+          {isEditable && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="h-7 gap-2 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all">
+                  <Plus className="h-3 w-3" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Adicionar Base</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] border-primary/20 bg-card/95 backdrop-blur-xl">
+                <DialogHeader>
+                  <DialogTitle className="text-sm font-black uppercase tracking-[0.2em] text-center">Configurar Plantão</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+                      Selecione as Bases Padrões:
+                    </label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {PREDEFINED_BASES.map((base) => (
+                        <div 
+                          key={base}
+                          onClick={() => toggleBaseSelection(base)}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all",
+                            selectedBases.includes(base) 
+                              ? "bg-primary/10 border-primary/40 text-primary shadow-lg shadow-primary/5" 
+                              : "bg-white/5 border-white/5 hover:border-white/10"
+                          )}
+                        >
+                          <span className="text-[10px] font-bold uppercase tracking-widest">{base}</span>
+                          <div className={cn(
+                            "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                            selectedBases.includes(base) ? "bg-primary border-primary" : "border-white/20"
+                          )}>
+                            {selectedBases.includes(base) && <CheckCircle2 className="h-3 w-3 text-white" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-white/5">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+                      Outra Cidade:
+                    </label>
+                    <Input 
+                      placeholder="EX: FRANCISCO BELTRÃO"
+                      value={customCity}
+                      onChange={(e) => setCustomCity(e.target.value)}
+                      className="bg-white/5 border-white/10 focus:border-primary/50 text-[10px] font-bold uppercase tracking-widest"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleAddCities}
+                    className="w-full font-black uppercase tracking-widest text-[10px]"
+                    disabled={selectedBases.length === 0 && !customCity.trim()}
+                  >
+                    Confirmar Seleção
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 min-h-[40px]">
@@ -133,31 +256,10 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
         ) : (
           <div className="flex items-center gap-2 text-muted-foreground p-2">
             <Building2 className="h-4 w-4 opacity-20" />
-            <p className="text-[9px] uppercase tracking-widest">Nenhuma cidade configurada no plantão.</p>
+            <p className="text-[9px] uppercase tracking-widest">Nenhuma base configurada no sistema.</p>
           </div>
         )}
       </div>
-
-      {isEditable && (
-        <div className="flex items-center gap-2 bg-zinc-900/40 p-2 rounded-xl border border-white/5">
-          <Input 
-            placeholder="NOME DA CIDADE (EX: AMPÉRE)"
-            value={newCityName}
-            onChange={(e) => setNewCityName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddCity()}
-            className="h-9 bg-transparent border-none text-[10px] uppercase font-black tracking-widest focus-visible:ring-0"
-          />
-          <Button 
-            size="sm" 
-            onClick={handleAddCity}
-            disabled={!newCityName.trim()}
-            className="h-8 gap-2 bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="text-[9px] font-black uppercase">Adicionar</span>
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
