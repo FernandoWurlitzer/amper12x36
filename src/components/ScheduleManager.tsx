@@ -1,4 +1,3 @@
-
 "use client";
 
 import { TechnicianRow } from "./TechnicianRow";
@@ -18,11 +17,11 @@ interface ScheduleManagerProps {
   isFullscreen?: boolean;
 }
 
-// Técnicos e Cidades conforme solicitado
+// Cidades conforme solicitado
 const CITIES: Technician[] = [
-  { id: "francisco-beltrao", name: "ROMEU (F. Beltrão)" },
-  { id: "ponta-grossa", name: "ERIC (P. Grossa)" },
-  { id: "pato-branco", name: "EDERSON (P. Branco)" },
+  { id: "francisco-beltrao", name: "FRANCISCO BELTRÃO" },
+  { id: "ponta-grossa", name: "PONTA GROSSA" },
+  { id: "pato-branco", name: "PATO BRANCO" },
 ];
 
 export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) {
@@ -152,7 +151,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                   Painel de Visualização
                 </p>
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
-                  <li><b>Laranja (E1):</b> Equipe 1 em atendimento.</li>
+                  <li><b>Vermelho (E1):</b> Equipe 1 em atendimento.</li>
                   <li><b>Verde (E2):</b> Equipe 2 em atendimento.</li>
                   <li><b>Preto/Escuro:</b> Horário livre para agendamento.</li>
                   <li>Horários passados ficam esmaecidos automaticamente.</li>

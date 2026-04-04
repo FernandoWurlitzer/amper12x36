@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Trash2, Sunrise, Sunset, Lock } from "lucide-react";
+import { Trash2, Sunrise, Sunset, Lock, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { 
@@ -69,6 +68,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
+  const [floatingTime, setFloatingTime] = useState<string | null>(null);
+  const [showFloating, setShowFloating] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
   const scheduledBlocksRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'technicians', technician.id, 'scheduledBlocks');
@@ -115,7 +118,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return false;
   }, [currentTime]);
 
-  // Ambos os turnos agora têm 6 horas para garantir espessura igual das colunas (25 slots cada)
   const baseSlots = useMemo(() => {
     const morning: SlotDefinition[] = [];
     const afternoon: SlotDefinition[] = [];
@@ -132,12 +134,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
-    generateShift(8, 14, morning); // 8:00 às 14:00 (6 horas)
-    generateShift(14, 20, afternoon); // 14:00 às 20:00 (6 horas)
+    generateShift(8, 14, morning); // 8:00 às 14:00 (6 horas = 25 slots)
+    generateShift(14, 20, afternoon); // 14:00 às 20:00 (6 horas = 25 slots)
     return { morning, afternoon };
   }, []);
 
-  const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
+  const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free', isSingleClick: boolean = false) => {
     if (!isEditable || !user || !firestore) return;
 
     slotKeys.forEach(time => {
@@ -145,33 +147,63 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const h = parseInt(hStr);
       const m = parseInt(mStr);
 
-      if (isPast(h, m)) return;
+      const keysToProcess = [time];
 
-      const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', time);
-      if (action === 'occupy' && activeEquipe !== null) {
-        const update: any = {
-          technicianId: technician.id,
-          startTime: time,
-          endTime: time,
-          markedByUserId: user.uid,
-          updatedAt: serverTimestamp(),
-        };
-        if (activeEquipe === 1) update.equipe1 = true;
-        if (activeEquipe === 2) update.equipe2 = true;
-        setDocumentNonBlocking(docRef, update, { merge: true });
-      } else if (action === 'free') {
-        if (activeEquipe === null) {
-          deleteDocumentNonBlocking(docRef);
-        } else {
+      // Lógica de Cascata: Se for clique individual (não arraste), preencher vinculados
+      if (isSingleClick && action === 'occupy') {
+        if (m === 15) keysToProcess.push(`${hStr}:00`);
+        if (m === 30) { keysToProcess.push(`${hStr}:00`); keysToProcess.push(`${hStr}:15`); }
+        if (m === 45) { 
+          keysToProcess.push(`${hStr}:00`); 
+          keysToProcess.push(`${hStr}:15`); 
+          // Se 30 for passado, preenche. Se for futuro, pula conforme regra anterior
+          if (isPast(h, 30)) keysToProcess.push(`${hStr}:30`);
+        }
+      }
+
+      // Se for desmarcar, desmarca os mesmos vinculados (simetria)
+      if (isSingleClick && action === 'free') {
+        if (m === 15) keysToProcess.push(`${hStr}:00`);
+        if (m === 30) { keysToProcess.push(`${hStr}:00`); keysToProcess.push(`${hStr}:15`); }
+        if (m === 45) { 
+          keysToProcess.push(`${hStr}:00`); 
+          keysToProcess.push(`${hStr}:15`); 
+          if (isPast(h, 30)) keysToProcess.push(`${hStr}:30`);
+        }
+      }
+
+      keysToProcess.forEach(k => {
+        const [kh, km] = k.split(':').map(Number);
+        
+        // Proteção: Só processa blocos passados se for via cascata automática
+        if (isPast(kh, km) && k === time && !isSingleClick) return;
+
+        const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', k);
+        if (action === 'occupy' && activeEquipe !== null) {
           const update: any = {
+            technicianId: technician.id,
+            startTime: k,
+            endTime: k,
             markedByUserId: user.uid,
             updatedAt: serverTimestamp(),
           };
-          if (activeEquipe === 1) update.equipe1 = false;
-          if (activeEquipe === 2) update.equipe2 = false;
+          if (activeEquipe === 1) update.equipe1 = true;
+          if (activeEquipe === 2) update.equipe2 = true;
           setDocumentNonBlocking(docRef, update, { merge: true });
+        } else if (action === 'free') {
+          if (activeEquipe === null) {
+            deleteDocumentNonBlocking(docRef);
+          } else {
+            const update: any = {
+              markedByUserId: user.uid,
+              updatedAt: serverTimestamp(),
+            };
+            if (activeEquipe === 1) update.equipe1 = false;
+            if (activeEquipe === 2) update.equipe2 = false;
+            setDocumentNonBlocking(docRef, update, { merge: true });
+          }
         }
-      }
+      });
     });
   }, [isEditable, user, firestore, technician.id, activeEquipe, isPast]);
 
@@ -183,11 +215,22 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const targetSlots = type === 'morning' ? baseSlots.morning : baseSlots.afternoon;
       
       const keysToUpdate = targetSlots.slice(minIdx, maxIdx + 1).map(s => s.key);
-      handleToggleSlots(keysToUpdate, dragAction);
+      const isSingle = minIdx === maxIdx;
+      
+      handleToggleSlots(keysToUpdate, dragAction, isSingle);
     }
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
+
+    // Fade out suave para o horário
+    setIsFadingOut(true);
+    const timer = setTimeout(() => {
+      setShowFloating(false);
+      setFloatingTime(null);
+      setIsFadingOut(false);
+    }, 1500); // 1.5s antes de sumir
+    return () => clearTimeout(timer);
   }, [dragStart, dragEnd, dragAction, baseSlots, handleToggleSlots]);
 
   useEffect(() => {
@@ -210,6 +253,15 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
+    // Não mostrar horário se a caixa já estiver marcada
+    if (existing.e1 || existing.e2) {
+      setShowFloating(false);
+    } else {
+      setFloatingTime(slot.time);
+      setShowFloating(true);
+      setIsFadingOut(false);
+    }
+
     if (activeEquipe === null) {
       if (existing.e1 || existing.e2) {
         setDragStart({ type, index });
@@ -231,6 +283,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const handleMouseEnter = (type: 'morning' | 'afternoon', index: number) => {
     if (dragStart !== null && dragStart.type === type) {
       setDragEnd({ type, index });
+      const targetSlots = type === 'morning' ? baseSlots.morning : baseSlots.afternoon;
+      setFloatingTime(targetSlots[index].time);
     }
   };
 
@@ -284,11 +338,23 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-red-600" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
-            {type === 'morning' ? 'Manhã (08:00 - 14:00)' : 'Tarde (14:00 - 20:00)'}
+            {type === 'morning' ? 'Manhã (08:00 - 14:00)' : 'TARDE (14:00 - 20:00)'}
           </div>
         </div>
         
         <div className={cn("flex h-20 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
+          {showFloating && floatingTime && (
+            <div className={cn(
+              "absolute -top-10 left-1/2 -translate-x-1/2 bg-primary px-3 py-1.5 rounded-full shadow-2xl z-50 transition-all duration-[1000ms] ease-in-out",
+              isFadingOut ? "opacity-0 scale-95 translate-y-2" : "opacity-100 scale-100"
+            )}>
+              <div className="flex items-center gap-1.5 text-white font-black text-[10px] tracking-widest">
+                <Clock className="h-3 w-3" />
+                {floatingTime}
+              </div>
+            </div>
+          )}
+
           {timeSlots.map((slot, index) => {
             const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
             const isSlotPast = isPast(slot.h, slot.m);
@@ -385,7 +451,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       
-      {/* Container de Barras: Empilhamento Vertical para melhor aproveitamento de largura */}
       <div className="flex flex-col gap-5">
         {renderSlotsBar('morning', baseSlots.morning)}
         {renderSlotsBar('afternoon', baseSlots.afternoon)}
