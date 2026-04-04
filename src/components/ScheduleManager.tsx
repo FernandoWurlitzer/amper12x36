@@ -1,3 +1,4 @@
+
 "use client";
 
 import { TechnicianRow } from "./TechnicianRow";
@@ -17,7 +18,7 @@ interface ScheduleManagerProps {
   isFullscreen?: boolean;
 }
 
-// Cidades conforme solicitado
+// Bases de atendimento
 const CITIES: Technician[] = [
   { id: "francisco-beltrao", name: "FRANCISCO BELTRÃO" },
   { id: "ponta-grossa", name: "PONTA GROSSA" },
@@ -29,7 +30,6 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Verificar se o usuário atual é um Membro TAC
   const tacMemberRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_tac_members', user.uid);
@@ -97,15 +97,6 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
         </div>
       )}
 
-      {!isFullscreen && !user && (
-        <div className="bg-muted border rounded-lg p-2 flex items-center gap-2 text-muted-foreground">
-          <Lock className="h-4 w-4" />
-          <p className="text-[11px] font-medium uppercase tracking-wider">
-            Modo de visualização.
-          </p>
-        </div>
-      )}
-
       <div className={cn(
         "grid grid-cols-1 gap-6",
         isFullscreen && "gap-3"
@@ -133,9 +124,8 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                 </p>
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
                   <li>Selecione <b>E1</b> ou <b>E2</b> antes de marcar.</li>
-                  <li>Clique e arraste para ocupar vários blocos de 15 min.</li>
-                  <li>Clique em um bloco sem selecionar nenhuma equipe para <b>desmarcar</b> um horário.</li>
-                  <li>Use o botão <b>Limpar</b> para zerar toda a agenda da cidade.</li>
+                  <li>Clique em um bloco para marcar os vínculos automáticos.</li>
+                  <li><b>Lógica de Vínculo:</b> 30 marca o 15. 45 marca o 00 e 30.</li>
                 </ul>
               </div>
             </CardContent>
@@ -151,10 +141,9 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                   Painel de Visualização
                 </p>
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
-                  <li><b>Vermelho (E1):</b> Equipe 1 em atendimento.</li>
-                  <li><b>Verde (E2):</b> Equipe 2 em atendimento.</li>
-                  <li><b>Preto/Escuro:</b> Horário livre para agendamento.</li>
-                  <li>Horários passados ficam esmaecidos automaticamente.</li>
+                  <li><b>Lixeira Seletiva:</b> Limpa apenas horários futuros.</li>
+                  <li><b>Cores:</b> Vermelho (E1), Verde (E2).</li>
+                  <li>Horários passados são bloqueados para edição.</li>
                 </ul>
               </div>
             </CardContent>

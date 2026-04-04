@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
@@ -134,8 +135,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
-    generateShift(8, 14, morning); // 8:00 às 14:00 (6 horas = 25 slots)
-    generateShift(14, 20, afternoon); // 14:00 às 20:00 (6 horas = 25 slots)
+    generateShift(8, 14, morning);
+    generateShift(14, 20, afternoon);
     return { morning, afternoon };
   }, []);
 
@@ -149,33 +150,24 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       const keysToProcess = [time];
 
-      // Lógica de Cascata: Se for clique individual (não arraste), preencher vinculados
-      if (isSingleClick && action === 'occupy') {
-        if (m === 15) keysToProcess.push(`${hStr}:00`);
-        if (m === 30) { keysToProcess.push(`${hStr}:00`); keysToProcess.push(`${hStr}:15`); }
-        if (m === 45) { 
-          keysToProcess.push(`${hStr}:00`); 
-          keysToProcess.push(`${hStr}:15`); 
-          // Se 30 for passado, preenche. Se for futuro, pula conforme regra anterior
-          if (isPast(h, 30)) keysToProcess.push(`${hStr}:30`);
-        }
-      }
-
-      // Se for desmarcar, desmarca os mesmos vinculados (simetria)
-      if (isSingleClick && action === 'free') {
-        if (m === 15) keysToProcess.push(`${hStr}:00`);
-        if (m === 30) { keysToProcess.push(`${hStr}:00`); keysToProcess.push(`${hStr}:15`); }
-        if (m === 45) { 
-          keysToProcess.push(`${hStr}:00`); 
-          keysToProcess.push(`${hStr}:15`); 
-          if (isPast(h, 30)) keysToProcess.push(`${hStr}:30`);
+      // Lógica de Vínculo de Agendamento (Symmetry for marking/desmarking)
+      if (isSingleClick) {
+        if (m === 15) {
+          keysToProcess.push(`${hStr}:00`);
+        } else if (m === 30) {
+          // Clique em 30: marca/desmarca o 15 (pula o 00 conforme solicitado)
+          keysToProcess.push(`${hStr}:15`);
+        } else if (m === 45) {
+          // Clique em 45: marca/desmarca o 00 e 30 (pula o 15 conforme solicitado)
+          keysToProcess.push(`${hStr}:00`);
+          keysToProcess.push(`${hStr}:30`);
         }
       }
 
       keysToProcess.forEach(k => {
         const [kh, km] = k.split(':').map(Number);
         
-        // Proteção: Só processa blocos passados se for via cascata automática
+        // Bloqueio de retroatividade
         if (isPast(kh, km) && k === time && !isSingleClick) return;
 
         const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', k);
@@ -223,13 +215,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragEnd(null);
     setDragAction(null);
 
-    // Fade out suave para o horário
     setIsFadingOut(true);
     const timer = setTimeout(() => {
       setShowFloating(false);
       setFloatingTime(null);
       setIsFadingOut(false);
-    }, 1500); // 1.5s antes de sumir
+    }, 1500);
     return () => clearTimeout(timer);
   }, [dragStart, dragEnd, dragAction, baseSlots, handleToggleSlots]);
 
@@ -253,7 +244,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
-    // Não mostrar horário se a caixa já estiver marcada
     if (existing.e1 || existing.e2) {
       setShowFloating(false);
     } else {
@@ -296,7 +286,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const timeKey = d.id;
       const [h, m] = timeKey.split(':').map(Number);
       
-      // Lixeira Seletiva: Apenas horários atuais ou futuros
       if (!isPast(h, m)) {
         if (mode === 'both') {
           deleteDocumentNonBlocking(d.ref);
