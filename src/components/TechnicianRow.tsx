@@ -399,7 +399,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   };
 
   return (
-    <div className={cn("bg-zinc-900/60 border border-white/5 rounded-2xl p-6 space-y-6 shadow-xl hover:border-primary/10 transition-all duration-500", isLoading && "opacity-50", compact && "p-4")}>
+    <div className={cn("bg-zinc-900/60 border border-white/5 rounded-2xl p-4 space-y-4 shadow-xl hover:border-primary/10 transition-all duration-500", isLoading && "opacity-50", compact && "p-3 space-y-3")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center bg-red-600 border border-black rounded-xl text-white font-black text-xs select-none shadow-lg">
@@ -418,11 +418,11 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
             <div className="flex items-center gap-2">
               <button onClick={() => setActiveEquipe(activeEquipe === 1 ? null : 1)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 1 ? "bg-red-600 border-red-500 text-white shadow-lg" : "bg-zinc-800/40 border-white/5", isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50")}>
                 <div className={cn("w-2 h-2 rounded-full", activeEquipe === 1 ? "bg-white" : "bg-red-600")} />
-                <span className="text-[10px] font-black uppercase tracking-widest">E1</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">EQUIPE 1</span>
               </button>
               <button onClick={() => setActiveEquipe(activeEquipe === 2 ? null : 2)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all", activeEquipe === 2 ? "bg-emerald-500 border-emerald-400 text-white shadow-lg" : "bg-zinc-800/40 border-white/5", isSelectionError && activeEquipe === null && "animate-blink ring-1 ring-primary/50")}>
                 <div className={cn("w-2 h-2 rounded-full", activeEquipe === 2 ? "bg-white" : "bg-emerald-500")} />
-                <span className="text-[10px] font-black uppercase tracking-widest">E2</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">EQUIPE 2</span>
               </button>
               <Button variant="ghost" size="sm" onClick={() => setClearDialogOpen(true)} className="h-8 text-[9px] gap-1.5 text-muted-foreground hover:text-white hover:bg-red-600 uppercase font-black rounded-lg px-2">
                 <Trash2 className="h-4 w-4" />
@@ -433,16 +433,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
         {renderSlotsBar('morning', baseSlots.morning)}
         {renderSlotsBar('afternoon', baseSlots.afternoon)}
       </div>
 
-      <div className="flex justify-between items-center pt-3 text-[8px] font-black text-white/30 border-t border-white/5">
-        <div className="flex gap-4 uppercase tracking-widest">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-red-600" /><span>Equipe 1</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-emerald-500" /><span>Equipe 2</span></div>
-        </div>
+      <div className="flex justify-end items-center pt-2 border-t border-white/5">
         <p className="font-black text-[7px] uppercase tracking-[0.3em] text-white/20 animate-pulse">
           {isEditable ? "CLIQUE OU ARRASTE PARA AGENDAR" : "MODO VISUALIZAÇÃO"}
         </p>

@@ -59,7 +59,7 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
   }
 
   return (
-    <div className={cn("space-y-6", isFullscreen && "space-y-3")}>
+    <div className={cn("space-y-4", isFullscreen && "space-y-2")}>
       {/* Seção de Cidades de Plantão */}
       <DutyCitiesManager isEditable={isTacMember} />
 
@@ -102,8 +102,8 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
       )}
 
       <div className={cn(
-        "grid grid-cols-1 gap-6",
-        isFullscreen && "gap-3"
+        "grid grid-cols-1 gap-4",
+        isFullscreen && "gap-2"
       )}>
         {CITIES.map((city) => (
           <TechnicianRow

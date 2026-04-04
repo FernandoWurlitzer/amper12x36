@@ -131,7 +131,7 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
   const activeCities = cities?.filter(c => c.isActive) || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between border-b border-white/5 pb-2">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-primary/10 rounded-lg">
@@ -216,7 +216,7 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 min-h-[40px]">
+      <div className="flex flex-wrap gap-1.5 min-h-[32px]">
         {isLoading ? (
           <div className="h-10 w-32 bg-white/5 animate-pulse rounded-full" />
         ) : cities && cities.length > 0 ? (
