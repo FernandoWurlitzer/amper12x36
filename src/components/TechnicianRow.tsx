@@ -153,12 +153,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const keysToProcess = [time];
 
       if (isSingleClick) {
-        if (m === 15) {
+        if (m === 15 && isPast(h, 0)) {
           keysToProcess.push(`${hStr}:00`);
-        } else if (m === 45) {
-          const nextH = h + 1;
-          const nextHStr = nextH.toString().padStart(2, "0");
-          keysToProcess.push(`${nextHStr}:00`);
         }
       }
 
