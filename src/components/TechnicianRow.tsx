@@ -152,22 +152,21 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       // Lógica de Vínculo de Agendamento (Symmetry for marking/desmarking)
       if (isSingleClick) {
-        if (m === 15) {
-          keysToProcess.push(`${hStr}:00`);
-        } else if (m === 30) {
-          // Clique em 30: marca/desmarca o 15 (pula o 00 conforme solicitado)
+        if (m === 30) {
+          // Clique em 30: marcar apenas o 15 (pula o 00)
           keysToProcess.push(`${hStr}:15`);
         } else if (m === 45) {
-          // Clique em 45: marca/desmarca o 00 e 30 (pula o 15 conforme solicitado)
-          keysToProcess.push(`${hStr}:00`);
-          keysToProcess.push(`${hStr}:30`);
+          // Clique em 45: marcar apenas a hora exata após ele
+          const nextH = h + 1;
+          const nextHStr = nextH.toString().padStart(2, "0");
+          keysToProcess.push(`${nextHStr}:00`);
         }
       }
 
       keysToProcess.forEach(k => {
         const [kh, km] = k.split(':').map(Number);
         
-        // Bloqueio de retroatividade
+        // Bloqueio de retroatividade: permite vínculo automático em horários passados se o clique for individual
         if (isPast(kh, km) && k === time && !isSingleClick) return;
 
         const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', k);
