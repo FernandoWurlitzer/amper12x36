@@ -226,8 +226,8 @@ export function DutyCitiesManager({ isEditable }: DutyCitiesManagerProps) {
               className={cn(
                 "group relative flex items-center gap-3 px-4 py-2 rounded-full border transition-all duration-300",
                 city.isActive 
-                  ? "bg-primary/10 border-primary/30 text-white shadow-lg shadow-primary/10" 
-                  : "bg-zinc-900/60 border-white/5 text-muted-foreground opacity-50"
+                  ? "bg-zinc-950 border-primary/50 text-white shadow-lg shadow-primary/5" 
+                  : "bg-black/20 border-white/5 text-muted-foreground opacity-40"
               )}
             >
               <div className="flex items-center gap-2">

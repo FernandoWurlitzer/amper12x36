@@ -328,7 +328,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           </div>
         </div>
         
-        <div className={cn("flex h-20 items-stretch border border-white/5 rounded-xl overflow-hidden bg-zinc-950 shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
+        <div className={cn("flex h-20 items-stretch border border-white/10 rounded-xl overflow-hidden bg-white/5 shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
           {showFloating && floatingTime && (
             <div className={cn(
               "absolute -top-10 left-1/2 -translate-x-1/2 bg-primary px-3 py-1.5 rounded-full shadow-2xl z-50 transition-all duration-[1000ms] ease-in-out",
