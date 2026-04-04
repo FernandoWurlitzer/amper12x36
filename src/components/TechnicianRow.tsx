@@ -56,7 +56,7 @@ interface SlotDefinition {
 }
 
 export function TechnicianRow({ technician, isEditable = false, compact = false }: Props) {
-  const { user } = useUser();
+  const { user } = user();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -136,7 +136,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
-    generateShift(8, 14, morning);
+    // Alterado de (8, 14) para (8, 13) para remover o horário de intervalo 13:00 - 14:00
+    generateShift(8, 13, morning);
     generateShift(14, 20, afternoon);
     return { morning, afternoon };
   }, []);
@@ -151,10 +152,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       const keysToProcess = [time];
 
-      // Novas Regras de Vínculo:
-      // 1. Ao clicar no 15, marcar a hora exata ao lado dele (00).
-      // 2. Ao clicar no 30, marcar apenas o 30.
-      // 3. Ao clicar no 45, marcar apenas a hora exata após ele.
       if (isSingleClick) {
         if (m === 15) {
           keysToProcess.push(`${hStr}:00`);
@@ -168,7 +165,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       keysToProcess.forEach(k => {
         const [kh, km] = k.split(':').map(Number);
         
-        // Bloqueio de retroatividade: permite vínculo automático em horários passados se o clique for individual
         if (isPast(kh, km) && k === time && !isSingleClick) return;
 
         const docRef = doc(firestore, 'technicians', technician.id, 'scheduledBlocks', k);
@@ -245,7 +241,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
-    // Ao clicar em uma caixa já marcada, não mostra o horário
     if (existing.e1 || existing.e2) {
       setShowFloating(false);
     } else {
@@ -288,7 +283,6 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const timeKey = d.id;
       const [h, m] = timeKey.split(':').map(Number);
       
-      // Lixeira Seletiva: Apenas horários atuais ou futuros são limpos
       if (!isPast(h, m)) {
         if (mode === 'both') {
           deleteDocumentNonBlocking(d.ref);
@@ -330,7 +324,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-red-600" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
-            {type === 'morning' ? 'Manhã (08:00 - 14:00)' : 'TARDE (14:00 - 20:00)'}
+            {/* Atualizado Manhã para 08:00 - 13:00 */}
+            {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'TARDE (14:00 - 20:00)'}
           </div>
         </div>
         
