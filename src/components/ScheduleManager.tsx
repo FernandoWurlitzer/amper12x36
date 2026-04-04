@@ -2,6 +2,7 @@
 "use client";
 
 import { TechnicianRow } from "./TechnicianRow";
+import { DutyCitiesManager } from "./DutyCitiesManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lock, Copy, CheckCircle2, Loader2, ShieldCheck, Eye } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -58,7 +59,10 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
   }
 
   return (
-    <div className={cn("space-y-4", isFullscreen && "space-y-2")}>
+    <div className={cn("space-y-6", isFullscreen && "space-y-3")}>
+      {/* Seção de Cidades de Plantão */}
+      <DutyCitiesManager isEditable={isTacMember} />
+
       {!isFullscreen && user && !isTacMember && (
         <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 space-y-3 text-destructive">
           <div className="flex items-center gap-2">
@@ -123,9 +127,9 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                   Painel de Administração (TAC)
                 </p>
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
-                  <li>Selecione <b>E1</b> ou <b>E2</b> antes de marcar.</li>
-                  <li>Clique em um bloco para marcar os vínculos automáticos.</li>
-                  <li><b>Lógica de Vínculo:</b> 30 marca o 15. 45 marca o 00 e 30.</li>
+                  <li><b>Equipe 1 (E1)</b> selecionada por padrão ao carregar.</li>
+                  <li>Gerencie as cidades de plantão no topo.</li>
+                  <li><b>Vínculos:</b> 15 marca 00. 45 marca 00 seguinte.</li>
                 </ul>
               </div>
             </CardContent>
@@ -141,8 +145,8 @@ export function ScheduleManager({ isFullscreen = false }: ScheduleManagerProps) 
                   Painel de Visualização
                 </p>
                 <ul className="list-disc pl-4 space-y-1 opacity-80">
+                  <li>Visualize cidades com plantão ativo hoje.</li>
                   <li><b>Lixeira Seletiva:</b> Limpa apenas horários futuros.</li>
-                  <li><b>Cores:</b> Vermelho (E1), Verde (E2).</li>
                   <li>Horários passados são bloqueados para edição.</li>
                 </ul>
               </div>

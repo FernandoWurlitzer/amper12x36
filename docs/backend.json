@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents an application user with access to the system. Authentication data (passwords) are handled by an external system. Only specific users (TAC members) will have permission to mark technician availability.",
+      "description": "Represents an application user with access to the system.",
       "properties": {
         "id": {
           "type": "string",
@@ -22,7 +22,7 @@
         },
         "roleId": {
           "type": "string",
-          "description": "Reference to the Role entity, defining the user's permissions within the application. (Relationship: Role 1:N User)"
+          "description": "Reference to the Role entity."
         }
       },
       "required": [
@@ -35,7 +35,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
       "type": "object",
-      "description": "Defines the different types of users or roles within the application, such as 'TAC Member' (who can edit schedules) and 'Viewer' (who can only view schedules).",
+      "description": "Defines user roles.",
       "properties": {
         "id": {
           "type": "string",
@@ -43,11 +43,11 @@
         },
         "name": {
           "type": "string",
-          "description": "The name of the role (e.g., 'TAC Member', 'Viewer')."
+          "description": "The name of the role."
         },
         "description": {
           "type": "string",
-          "description": "A detailed explanation of what this role represents and its associated privileges."
+          "description": "Explanation of privileges."
         }
       },
       "required": [
@@ -60,7 +60,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Technician",
       "type": "object",
-      "description": "Represents a technical staff member whose schedule and availability are managed within the application.",
+      "description": "Represents technical staff staff.",
       "properties": {
         "id": {
           "type": "string",
@@ -72,20 +72,20 @@
         },
         "phoneTariff": {
           "type": "string",
-          "description": "The technician's work phone number (Tarifa)."
+          "description": "Work phone."
         },
         "phonePersonal": {
           "type": "string",
-          "description": "The technician's personal phone number."
+          "description": "Personal phone."
         },
         "workRegime": {
           "type": "string",
-          "description": "The technician's work schedule type (e.g., 'Comercial', '12x36').",
+          "description": "Work schedule type.",
           "enum": ["Comercial", "12x36"]
         },
         "isOnDuty": {
           "type": "boolean",
-          "description": "Indicates if the technician is currently on call (plantão)."
+          "description": "Currently on call."
         }
       },
       "required": [
@@ -98,37 +98,32 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ScheduledBlock",
       "type": "object",
-      "description": "Represents a specific block of time when a technician is marked as unavailable. Supports multiple teams in the same slot.",
+      "description": "Represents a time block for a technician.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the ScheduledBlock entity."
+          "description": "Unique identifier (usually time)."
         },
         "technicianId": {
           "type": "string",
-          "description": "Reference to the Technician who is unavailable."
+          "description": "Reference to technician."
         },
         "startTime": {
           "type": "string",
-          "description": "The start time of the block.",
           "format": "date-time"
         },
         "endTime": {
           "type": "string",
-          "description": "The end time of the block.",
           "format": "date-time"
         },
         "equipe1": {
-          "type": "boolean",
-          "description": "Indicates if Equipe 1 is scheduled."
+          "type": "boolean"
         },
         "equipe2": {
-          "type": "boolean",
-          "description": "Indicates if Equipe 2 is scheduled."
+          "type": "boolean"
         },
         "markedByUserId": {
-          "type": "string",
-          "description": "User who marked this block."
+          "type": "string"
         }
       },
       "required": [
@@ -136,6 +131,34 @@
         "technicianId",
         "startTime",
         "endTime"
+      ]
+    },
+    "DutyCity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DutyCity",
+      "type": "object",
+      "description": "Represents a city where technicians are currently on duty.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "City name."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether duty is currently active in this city."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "isActive"
       ]
     }
   },
@@ -154,13 +177,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores individual user profiles.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "description": "Stores individual user profiles."
         }
       },
       {
@@ -170,13 +187,7 @@
           "schema": {
             "$ref": "#/backend/entities/Role"
           },
-          "description": "Stores definitions of user roles.",
-          "params": [
-            {
-              "name": "roleId",
-              "description": "The unique identifier of the role."
-            }
-          ]
+          "description": "Stores role definitions."
         }
       },
       {
@@ -186,13 +197,7 @@
           "schema": {
             "$ref": "#/backend/entities/Technician"
           },
-          "description": "Stores profiles of technical staff.",
-          "params": [
-            {
-              "name": "technicianId",
-              "description": "The unique identifier of the technician."
-            }
-          ]
+          "description": "Stores technician profiles."
         }
       },
       {
@@ -202,17 +207,7 @@
           "schema": {
             "$ref": "#/backend/entities/ScheduledBlock"
           },
-          "description": "Stores specific time blocks.",
-          "params": [
-            {
-              "name": "technicianId",
-              "description": "The unique identifier of the technician."
-            },
-            {
-              "name": "scheduledBlockId",
-              "description": "The unique identifier of the scheduled block."
-            }
-          ]
+          "description": "Stores specific time blocks."
         }
       },
       {
@@ -222,13 +217,17 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Identifies users who are 'TAC Members'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "description": "Identifies TAC Members."
+        }
+      },
+      {
+        "path": "/dutyCities/{cityId}",
+        "definition": {
+          "entityName": "DutyCity",
+          "schema": {
+            "$ref": "#/backend/entities/DutyCity"
+          },
+          "description": "Stores cities with active duty."
         }
       }
     ]

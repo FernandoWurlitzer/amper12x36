@@ -1,72 +1,35 @@
-/**
- * Firestore Security Rules
- * 
- * Core Philosophy:
- * This ruleset implements a role-based access control system specifically designed for a 
- * technician scheduling application. It prioritizes "Authorization Independence" by using 
- * a dedicated lookup collection (`roles_tac_members`) to identify privileged users 
- * (TAC Members) who have the authority to manage technician schedules.
- * 
- * Data Structure:
- * - /users/{userId}: Private user profiles.
- * - /roles/{roleId}: Publicly readable reference data for system roles.
- * - /technicians/{technicianId}: Publicly readable technician profiles.
- * - /technicians/{technicianId}/scheduledBlocks/{blockId}: Publicly readable availability 
- *   blocks, with write access restricted to TAC Members.
- * - /roles_tac_members/{userId}: A restricted lookup collection for DBAC (Database-Based Access Control).
- */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is a TAC Member using the DBAC lookup collection. */
     function isTacMember() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_tac_members/$(request.auth.uid));
     }
 
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for individual user profiles.
-     */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update, delete: if isOwner(userId);
     }
 
-    /**
-     * @description Rules for role definitions.
-     */
     match /roles/{roleId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
-    /**
-     * @description Rules for technician profiles.
-     */
     match /technicians/{technicianId} {
       allow get, list: if true;
       allow create, update, delete: if isTacMember();
 
-      /**
-       * @description Rules for specific time blocks.
-       * Public read access, gated write access for TAC Members.
-       */
       match /scheduledBlocks/{scheduledBlockId} {
         allow get, list: if true;
         allow create: if isTacMember() && request.resource.data.markedByUserId == request.auth.uid;
@@ -74,9 +37,11 @@ service cloud.firestore {
       }
     }
 
-    /**
-     * @description Rules for the TAC Member lookup collection.
-     */
+    match /dutyCities/{cityId} {
+      allow get, list: if true;
+      allow create, update, delete: if isTacMember();
+    }
+
     match /roles_tac_members/{userId} {
       allow get: if isSignedIn();
       allow list: if false;

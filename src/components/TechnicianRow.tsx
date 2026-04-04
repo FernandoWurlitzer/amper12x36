@@ -64,7 +64,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   const [dragEnd, setDragEnd] = useState<{ type: 'morning' | 'afternoon', index: number } | null>(null);
   const [dragAction, setDragAction] = useState<'occupy' | 'free' | null>(null);
   
-  const [activeEquipe, setActiveEquipe] = useState<number | null>(null);
+  // E1 Ativada por padrão conforme solicitado
+  const [activeEquipe, setActiveEquipe] = useState<number | null>(1);
   const [isSelectionError, setIsSelectionError] = useState(false);
   const [currentTime, setCurrentTime] = useState<{ h: number, m: number } | null>(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
@@ -150,18 +151,18 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       const keysToProcess = [time];
 
-      // Lógica de Vínculo de Agendamento (Symmetry for marking/desmarking)
+      // Novas Regras de Vínculo:
+      // 1. Ao clicar no 15, marcar a hora exata ao lado dele (00).
+      // 2. Ao clicar no 30, marcar apenas o 30.
+      // 3. Ao clicar no 45, marcar apenas a hora exata após ele.
       if (isSingleClick) {
         if (m === 15) {
-          // Clique em 15: marcar a hora exata (00) automaticamente
           keysToProcess.push(`${hStr}:00`);
         } else if (m === 45) {
-          // Clique em 45: marcar apenas a hora exata após ele
           const nextH = h + 1;
           const nextHStr = nextH.toString().padStart(2, "0");
           keysToProcess.push(`${nextHStr}:00`);
         }
-        // Nota: Clique em 30 não adiciona nada, processando apenas a si mesmo.
       }
 
       keysToProcess.forEach(k => {
@@ -244,6 +245,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     
     const existing = occupiedSlotsMap[slot.key] || { e1: false, e2: false };
 
+    // Ao clicar em uma caixa já marcada, não mostra o horário
     if (existing.e1 || existing.e2) {
       setShowFloating(false);
     } else {
@@ -441,7 +443,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-8">
         {renderSlotsBar('morning', baseSlots.morning)}
         {renderSlotsBar('afternoon', baseSlots.afternoon)}
       </div>
