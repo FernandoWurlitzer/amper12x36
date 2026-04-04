@@ -328,7 +328,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
           </div>
         </div>
         
-        <div className={cn("flex h-20 items-stretch border border-white/10 rounded-xl overflow-hidden bg-white/5 shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
+        <div className={cn("flex h-20 items-stretch border border-white/20 rounded-xl overflow-hidden bg-black shadow-2xl relative", (!isEditable || isLoading) && "opacity-75")}>
           {showFloating && floatingTime && (
             <div className={cn(
               "absolute -top-10 left-1/2 -translate-x-1/2 bg-primary px-3 py-1.5 rounded-full shadow-2xl z-50 transition-all duration-[1000ms] ease-in-out",
@@ -363,9 +363,9 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(type, index); }}
                 onMouseEnter={() => handleMouseEnter(type, index)}
                 className={cn(
-                  "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/5 last:border-r-0",
-                  isSlotPast ? "opacity-30 cursor-not-allowed bg-zinc-900" : (isEditable ? "cursor-pointer" : "cursor-default"),
-                  !visualE1 && !visualE2 && "bg-zinc-900/40 hover:bg-white/5"
+                  "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/10 last:border-r-0",
+                  isSlotPast ? "opacity-30 cursor-not-allowed bg-zinc-950" : (isEditable ? "cursor-pointer" : "cursor-default"),
+                  !visualE1 && !visualE2 && "bg-zinc-900/60 hover:bg-white/10"
                 )}
               >
                 <div className="flex flex-col h-full w-full overflow-hidden">
