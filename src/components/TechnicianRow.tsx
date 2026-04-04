@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Trash2, Sunrise, Sunset, Lock, Clock } from "lucide-react";
+import { Trash2, Sunrise, Sunset, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Technician } from "./ScheduleManager";
 import { 
@@ -115,6 +115,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     return false;
   }, [currentTime]);
 
+  // Ambos os turnos agora têm 6 horas para garantir espessura igual das colunas (25 slots cada)
   const baseSlots = useMemo(() => {
     const morning: SlotDefinition[] = [];
     const afternoon: SlotDefinition[] = [];
@@ -131,25 +132,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
-    generateShift(8, 13, morning);
-    generateShift(14, 20, afternoon);
+    generateShift(8, 14, morning); // 8:00 às 14:00 (6 horas)
+    generateShift(14, 20, afternoon); // 14:00 às 20:00 (6 horas)
     return { morning, afternoon };
   }, []);
-
-  const filteredSlots = useMemo(() => {
-    if (!currentTime) return baseSlots;
-
-    const filterShift = (shift: SlotDefinition[], isMorning: boolean) => {
-      if (isMorning && currentTime.h >= 13) return [];
-      const thresholdH = Math.max(isMorning ? 8 : 14, currentTime.h - 1);
-      return shift.filter(slot => slot.h >= thresholdH);
-    };
-
-    return {
-      morning: filterShift(baseSlots.morning, true),
-      afternoon: filterShift(baseSlots.afternoon, false)
-    };
-  }, [baseSlots, currentTime]);
 
   const handleToggleSlots = useCallback((slotKeys: string[], action: 'occupy' | 'free') => {
     if (!isEditable || !user || !firestore) return;
@@ -194,7 +180,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const type = dragStart.type;
       const minIdx = Math.min(dragStart.index, dragEnd.index);
       const maxIdx = Math.max(dragStart.index, dragEnd.index);
-      const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
+      const targetSlots = type === 'morning' ? baseSlots.morning : baseSlots.afternoon;
       
       const keysToUpdate = targetSlots.slice(minIdx, maxIdx + 1).map(s => s.key);
       handleToggleSlots(keysToUpdate, dragAction);
@@ -202,7 +188,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
     setDragStart(null);
     setDragEnd(null);
     setDragAction(null);
-  }, [dragStart, dragEnd, dragAction, filteredSlots, handleToggleSlots]);
+  }, [dragStart, dragEnd, dragAction, baseSlots, handleToggleSlots]);
 
   useEffect(() => {
     if (dragStart !== null) {
@@ -212,7 +198,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [dragStart, handleMouseUp]);
 
   const handleMouseDown = (type: 'morning' | 'afternoon', index: number) => {
-    const targetSlots = type === 'morning' ? filteredSlots.morning : filteredSlots.afternoon;
+    const targetSlots = type === 'morning' ? baseSlots.morning : baseSlots.afternoon;
     const slot = targetSlots[index];
 
     if (isPast(slot.h, slot.m)) return;
@@ -256,6 +242,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const timeKey = d.id;
       const [h, m] = timeKey.split(':').map(Number);
       
+      // Lixeira Seletiva: Apenas horários atuais ou futuros
       if (!isPast(h, m)) {
         if (mode === 'both') {
           deleteDocumentNonBlocking(d.ref);
@@ -292,13 +279,12 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
   }, [currentStatus]);
 
   const renderSlotsBar = (type: 'morning' | 'afternoon', timeSlots: SlotDefinition[]) => {
-    if (timeSlots.length === 0) return null;
     return (
       <div className="space-y-1 select-none flex-1 relative">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-red-600" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
-            {type === 'morning' ? 'Manhã' : 'Tarde (14:00 - 20:00)'}
+            {type === 'morning' ? 'Manhã (08:00 - 14:00)' : 'Tarde (14:00 - 20:00)'}
           </div>
         </div>
         
@@ -399,10 +385,10 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         </div>
       </div>
       
-      {/* Container de Barras: Empilhamento Vertical */}
+      {/* Container de Barras: Empilhamento Vertical para melhor aproveitamento de largura */}
       <div className="flex flex-col gap-5">
-        {renderSlotsBar('morning', filteredSlots.morning)}
-        {renderSlotsBar('afternoon', filteredSlots.afternoon)}
+        {renderSlotsBar('morning', baseSlots.morning)}
+        {renderSlotsBar('afternoon', baseSlots.afternoon)}
       </div>
 
       <div className="flex justify-between items-center pt-3 text-[8px] font-black text-white/30 border-t border-white/5">
