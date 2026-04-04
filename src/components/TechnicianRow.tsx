@@ -136,7 +136,8 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       arr.push({ type: 'slot', time: `${lastH}:00`, key: `${lastH}:00`, label: `${lastH}:00`, isHourStart: true, h: end, m: 0 });
     };
 
-    generateShift(8, 13, morning);
+    // Ambos os turnos agora têm 6 horas (25 slots) para alinhamento perfeito
+    generateShift(7, 13, morning);
     generateShift(14, 20, afternoon);
     return { morning, afternoon };
   }, []);
@@ -323,7 +324,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5 text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             {type === 'morning' ? <Sunrise className="h-2.5 w-2.5 text-red-600" /> : <Sunset className="h-2.5 w-2.5 text-blue-400" />}
-            {type === 'morning' ? 'Manhã (08:00 - 13:00)' : 'TARDE (14:00 - 20:00)'}
+            {type === 'morning' ? 'Manhã (07:00 - 13:00)' : 'TARDE (14:00 - 20:00)'}
           </div>
         </div>
         
