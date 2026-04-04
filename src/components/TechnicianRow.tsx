@@ -365,7 +365,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
                 className={cn(
                   "group relative flex-1 flex flex-col items-stretch transition-all duration-75 border-r border-white/10 last:border-r-0",
                   isSlotPast ? "opacity-30 cursor-not-allowed bg-zinc-950" : (isEditable ? "cursor-pointer" : "cursor-default"),
-                  !visualE1 && !visualE2 && "bg-zinc-900/60 hover:bg-white/10"
+                  !visualE1 && !visualE2 && "bg-zinc-800/60 hover:bg-white/10"
                 )}
               >
                 <div className="flex flex-col h-full w-full overflow-hidden">
