@@ -152,15 +152,16 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
 
       // Lógica de Vínculo de Agendamento (Symmetry for marking/desmarking)
       if (isSingleClick) {
-        if (m === 30) {
-          // Clique em 30: marcar apenas o 15 (pula o 00)
-          keysToProcess.push(`${hStr}:15`);
+        if (m === 15) {
+          // Clique em 15: marcar a hora exata (00) automaticamente
+          keysToProcess.push(`${hStr}:00`);
         } else if (m === 45) {
           // Clique em 45: marcar apenas a hora exata após ele
           const nextH = h + 1;
           const nextHStr = nextH.toString().padStart(2, "0");
           keysToProcess.push(`${nextHStr}:00`);
         }
+        // Nota: Clique em 30 não adiciona nada, processando apenas a si mesmo.
       }
 
       keysToProcess.forEach(k => {
@@ -285,6 +286,7 @@ export function TechnicianRow({ technician, isEditable = false, compact = false 
       const timeKey = d.id;
       const [h, m] = timeKey.split(':').map(Number);
       
+      // Lixeira Seletiva: Apenas horários atuais ou futuros são limpos
       if (!isPast(h, m)) {
         if (mode === 'both') {
           deleteDocumentNonBlocking(d.ref);
